@@ -19,10 +19,10 @@ var _circle2 = _interopRequireDefault(_circle);
 var Energy = (function (_Circle) {
 	_inherits(Energy, _Circle);
 
-	function Energy(canvas, props) {
+	function Energy(props) {
 		_classCallCheck(this, Energy);
 
-		_get(Object.getPrototypeOf(Energy.prototype), 'constructor', this).call(this, canvas, props);
+		_get(Object.getPrototypeOf(Energy.prototype), 'constructor', this).call(this, props);
 
 		this.speedX = props.speedX || 0;
 		this.speedY = props.speedY || 0;

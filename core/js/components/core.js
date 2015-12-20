@@ -18,26 +18,32 @@ var _circle = require('./circle');
 
 var _circle2 = _interopRequireDefault(_circle);
 
+var count_renderd = 0;
+var RENDER_CYCLE = 360;
+
 var Core = (function (_Circle) {
 	_inherits(Core, _Circle);
 
-	function Core(canvas, props) {
+	function Core(props) {
 		_classCallCheck(this, Core);
 
-		_get(Object.getPrototypeOf(Core.prototype), 'constructor', this).call(this, canvas, props);
+		_get(Object.getPrototypeOf(Core.prototype), 'constructor', this).call(this, props);
+
+		this.boundaryColor = props.boundaryColor || 'black';
+		this.boundaryWidth = props.boundaryWidth || 0;
 
 		this.life = props.life || 100;
 	}
 
 	_createClass(Core, [{
-		key: 'draw',
-		value: function draw() {
-			if (!this.canvas) {
-				console.error('Core draw: canvas is %s', this.canvas);
+		key: 'render',
+		value: function render(canvas) {
+			if (!canvas) {
+				console.error('Core render: canvas is %s', canvas);
 				return;
 			}
 
-			_get(Object.getPrototypeOf(Core.prototype), 'draw', this).call(this);
+			_get(Object.getPrototypeOf(Core.prototype), 'render', this).call(this, canvas);
 		}
 	}]);
 

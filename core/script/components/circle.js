@@ -1,20 +1,18 @@
 export default class Circle{
-	constructor( canvas, props ){
-		this.canvas = canvas;
-
+	constructor( props ){
 		this.x = props.x || 0;
 		this.y = props.y || 0;
 		this.radius = props.radius || 0;
 		this.color = props.color || 'black';
 	}
 
-	draw(){
-		if( !this.canvas ){
-			console.error( 'Circle draw function: canvas is %s', this.canvas );
+	render( canvas ){
+		if( !canvas ){
+			console.error( 'Circle draw function: canvas is %s', canvas );
 			return;
 		}
 
-		let context = this.canvas.getContext( '2d' );
+		let context = canvas.getContext( '2d' );
 
 		context.save();
 

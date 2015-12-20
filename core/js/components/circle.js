@@ -9,10 +9,8 @@ var _createClass = (function () { function defineProperties(target, props) { for
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
 var Circle = (function () {
-	function Circle(canvas, props) {
+	function Circle(props) {
 		_classCallCheck(this, Circle);
-
-		this.canvas = canvas;
 
 		this.x = props.x || 0;
 		this.y = props.y || 0;
@@ -21,14 +19,14 @@ var Circle = (function () {
 	}
 
 	_createClass(Circle, [{
-		key: 'draw',
-		value: function draw() {
-			if (!this.canvas) {
-				console.error('Circle draw function: canvas is %s', this.canvas);
+		key: 'render',
+		value: function render(canvas) {
+			if (!canvas) {
+				console.error('Circle draw function: canvas is %s', canvas);
 				return;
 			}
 
-			var context = this.canvas.getContext('2d');
+			var context = canvas.getContext('2d');
 
 			context.save();
 

@@ -19,15 +19,15 @@ var _circle2 = _interopRequireDefault(_circle);
 var Enemy = (function (_Circle) {
 	_inherits(Enemy, _Circle);
 
-	function Enemy(canvas, props) {
+	function Enemy(props) {
 		_classCallCheck(this, Enemy);
 
-		_get(Object.getPrototypeOf(Enemy.prototype), 'constructor', this).call(this, canvas, props);
+		_get(Object.getPrototypeOf(Enemy.prototype), 'constructor', this).call(this, props);
 
 		this.speedX = props.speedX || 0;
 		this.speedY = props.speedY || 0;
-		this.accelecateX = props.accelecateX || 0;
-		this.accelecateY = props.accelecateX || 0;
+		// this.accelecateX = props.accelecateX || 0;
+		// this.accelecateY = props.accelecateX || 0;
 
 		this.damage = props.damage || props.radius || 4;
 	}
