@@ -1,6 +1,7 @@
 import Shield from './shield';
 import Enemy from './enemy';
 import Energy from './energy';
+import Particle from './particle';
 import Background from './background';
 import Core from './core';
 
@@ -14,6 +15,39 @@ let requestAnimationFrame = (function(){
 			return setTimeout(callback, 1000 / 60 );
 		}
 })();
+
+let calculateRadian = function( position, center ){
+	let x = position.x;
+	let y = position.y;
+
+	let offset  = {
+		x: center.x - x,
+		y: center.y - y
+	};
+
+	let radian = 0;
+
+	if( x == center.x  ){
+		radian = ( y < center.y ) ? 0 : Math.PI;
+
+	}else if( y == center.y ){
+		radian = ( x > center.x ) ? Math.PI / 2 : Math.PI * 3 / 2;
+
+	}else if( x > center.x && y < center.y ){
+		radian = Math.atan( offset.x / -offset.y );
+
+	}else if( x > center.x && y > center.y ){
+		radian = Math.atan(offset. y / offset.x ) + Math.PI / 2;
+
+	}else if( x < center.x && y > center.y ){
+		radian = Math.atan( -offset.x / offset.y ) + Math.PI;
+
+	}else{
+		radian = Math.atan( offset.y / offset.x ) + Math.PI * 3 / 2;
+	}
+
+	return radian;
+}
 
 export default class Game{
 	constructor( canvas ){
@@ -29,6 +63,7 @@ export default class Game{
 		this.initCore();
 		this.initEnemies();
 		this.initEnergies();
+		this.initParticles();
 	}
 
 	initBackground(){
@@ -83,6 +118,10 @@ export default class Game{
 		this.energies = [];
 	}
 
+	initParticles(){
+		this.particles = [];
+	}
+
 	initEvents(){
 		this.initCanvasEvents();
 	}
@@ -94,37 +133,13 @@ export default class Game{
 				y:  this.canvas.height / 2
 			}
 
-			let x = evt.offsetX;
-			let y = evt.offsetY;
-
-			let offset  = {
-				x: center.x - x,
-				y: center.y - y
+			let position = {
+				x: evt.offsetX,
+				y: evt.offsetY
 			};
 
-			let radian = 0;
+			this.shield.startRadian = calculateRadian( position, center );
 
-			if( x == center.x  ){
-				radian = ( y < center.y ) ? 0 : Math.PI;
-
-			}else if( y == center.y ){
-				radian = ( x > center.x ) ? Math.PI / 2 : Math.PI * 3 / 2;
-
-			}else if( x > center.x && y < center.y ){
-				radian = Math.atan( offset.x / -offset.y );
-
-			}else if( x > center.x && y > center.y ){
-				radian = Math.atan(offset. y / offset.x ) + Math.PI / 2;
-
-			}else if( x < center.x && y > center.y ){
-				radian = Math.atan( -offset.x / offset.y ) + Math.PI;
-
-			}else{
-				radian = Math.atan( offset.y / offset.x ) + Math.PI * 3 / 2;
-			}
-
-			this.shield.startRadian = radian;
-			
 		}.bind(this), false);	
 	}
 
@@ -136,15 +151,21 @@ export default class Game{
 		renderGame();
 
 		let enemyAndEnergyFactory = function(){
-			let entry = this.createEnemyOrEnergy() ;
-			if( entry instanceof Enemy ){
-				this.enemies.push(  entry ) ;	
+			let entity = this.createEnemyOrEnergy() ;
+			if( entity instanceof Enemy ){
+				this.enemies.push(  entity ) ;	
 			}else{
-				this.energies.push( entry );
+				this.energies.push( entity );
 			}
 			setTimeout( enemyAndEnergyFactory.bind(this), 1000 + parseInt( Math.random() * 500 ) );
 		}.bind(this);
 		enemyAndEnergyFactory();
+
+		let detectCollisionProxy = function(){
+			this.detectCollision();
+			requestAnimationFrame( detectCollisionProxy );
+		}.bind(this);
+		detectCollisionProxy();
 	}
 
 	pause(){
@@ -165,6 +186,7 @@ export default class Game{
 		this.renderCore();
 		this.renderEnemies();
 		this.renderEnergies();
+		this.renderParticles();
 	}
 
 	renderBackground(){
@@ -189,6 +211,23 @@ export default class Game{
 		let toRetain = [];
 
 		this.enemies.forEach(function( enemy, index ){
+			// if(  enemy.isCompleteDied() ){
+			// 	return;
+			// }
+
+			// switch( enemy.status ){
+			// 	case Enemy.Status.ALIVE:
+			// 		enemy.x += enemy.speedX;
+			// 		enemy.y += enemy.speedY;
+
+			// 		if( enemy.x  > 0 && enemy.x < canvasWidth 
+			// 			&& enemy.y > 0  && enemy.y < canvasHeight ){
+			// 			enemy.die();
+			// 		}
+
+			// 		break;
+			// }
+
 			enemy.x += enemy.speedX;
 			enemy.y += enemy.speedY;
 
@@ -198,9 +237,10 @@ export default class Game{
 				enemy.render( this.canvas );
 				toRetain.push( enemy );
 			}
+	
 		}.bind(this));
 
-		this.enemies = toRetain;
+		// this.enemies = toRetain;
 	}
 
 	renderEnergies(){
@@ -221,6 +261,103 @@ export default class Game{
 		}.bind(this));
 
 		this.energies = toRetain;
+	}
+
+	renderParticles(){
+		let canvasWidth  = this.canvas.width;
+		let canvasHeight = this.canvas.height;
+
+		let toRetain = [];
+
+		this.particles.forEach(function( particle, index ){
+			particle.opacity -= particle.fadeStep;
+
+			if( opacity.opacity > 0 
+				&& particle.x > 0 && particle.x < canvasWidth
+					&&  particle.y > 0 && particle.y < canvasHeight ){
+
+				particle.render( this.canvas );
+				toRetain.push( particle );
+			}
+		}.bind(this) );
+
+		this.particles = toRetain;
+	}
+
+	detectCollision(){
+		this.enemies.forEach(function( enemy, index ){
+			if( this.detectCollisionWithShield( enemy ) 
+				|| this.detectCollisionWithCore( enemy ) ){
+
+				enemy.speedX *= -1;
+				enemy.speedY *= -1;
+			}
+
+		}.bind(this) );
+
+		this.energies.forEach(function( energy, index ){
+			if( this.detectCollisionWithShield( energy ) 
+				|| this.detectCollisionWithCore( energy ) ){
+				
+				energy.speedX *= -1;
+				energy.speedY *= -1;
+			}
+
+		}.bind(this));
+	}
+
+	detectCollisionWithShield( entity ){
+		let isCollision = false;
+
+		let center = {
+			x: this.canvas.width / 2,
+			y: this.canvas.height / 2
+		};
+
+		let distanceToCenter = Math.sqrt( 	Math.pow( entity.x - center.x, 2 ) +
+							Math.pow( entity.y - center.y, 2 ) );
+
+		if( distanceToCenter - entity.radius > this.shield.radius + this.shield.width 
+			|| distanceToCenter + entity.radius < this.shield.radius ){
+
+			isCollision = false;
+		}else{
+			let radian = calculateRadian({
+				x: entity.x,
+				y: entity.y
+			}, center );
+
+			let shieldStartRadian = this.shield.startRadian -  this.shield.radian / 2;
+			let shieldEndRadian   = this.shield.startRadian + this.shield.radian / 2;
+
+			if( shieldStartRadian < 0 ){
+				shieldStartRadian = Math.PI * 2 + shieldStartRadian;
+				isCollision = ( radian >= shieldStartRadian
+						|| radian <= shieldEndRadian ) ? true: false;
+
+			}else if( shieldEndRadian > Math.PI * 2 ){
+				shieldEndRadian -= Math.PI * 2;
+				isCollision = ( radian <= shieldEndRadian 
+						|| radian >= shieldStartRadian ) ? true : false;
+
+			}else{
+				isCollision = ( radian >= shieldStartRadian 
+						&& radian <= shieldEndRadian ) ? true : false;
+			}
+		}
+
+		return isCollision;
+	}
+
+	detectCollisionWithCore( entity ){
+		let isCollision = false;
+
+		let distanceToCenter = Math.sqrt( Math.pow( this.core.x - entity.x, 2 ) 
+							+ Math.pow( this.core.y - entity.y, 2 ) );
+
+		isCollision = distanceToCenter -  entity.radius < this.core.radius;
+
+		return isCollision;
 	}
 
 	createEnemyOrEnergy(){
@@ -292,9 +429,13 @@ export default class Game{
 
 		( type == 'enemy') ? ( props.damage = radius ) : ( props.energy = radius );
 
-		let entry = ( type == 'enemy' ) ? ( new Enemy( props ) ): ( new Energy( props ) );
+		let entity = ( type == 'enemy' ) ? ( new Enemy( props ) ): ( new Energy( props ) );
 
-		return entry;
+		return entity;
+	}
+
+	createParticle(){
+
 	}
 }
 

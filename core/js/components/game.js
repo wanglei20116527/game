@@ -22,6 +22,10 @@ var _energy = require('./energy');
 
 var _energy2 = _interopRequireDefault(_energy);
 
+var _particle = require('./particle');
+
+var _particle2 = _interopRequireDefault(_particle);
+
 var _background = require('./background');
 
 var _background2 = _interopRequireDefault(_background);
@@ -35,6 +39,34 @@ var requestAnimationFrame = (function () {
 		return setTimeout(callback, 1000 / 60);
 	};
 })();
+
+var calculateRadian = function calculateRadian(position, center) {
+	var x = position.x;
+	var y = position.y;
+
+	var offset = {
+		x: center.x - x,
+		y: center.y - y
+	};
+
+	var radian = 0;
+
+	if (x == center.x) {
+		radian = y < center.y ? 0 : Math.PI;
+	} else if (y == center.y) {
+		radian = x > center.x ? Math.PI / 2 : Math.PI * 3 / 2;
+	} else if (x > center.x && y < center.y) {
+		radian = Math.atan(offset.x / -offset.y);
+	} else if (x > center.x && y > center.y) {
+		radian = Math.atan(offset.y / offset.x) + Math.PI / 2;
+	} else if (x < center.x && y > center.y) {
+		radian = Math.atan(-offset.x / offset.y) + Math.PI;
+	} else {
+		radian = Math.atan(offset.y / offset.x) + Math.PI * 3 / 2;
+	}
+
+	return radian;
+};
 
 var Game = (function () {
 	function Game(canvas) {
@@ -54,6 +86,7 @@ var Game = (function () {
 			this.initCore();
 			this.initEnemies();
 			this.initEnergies();
+			this.initParticles();
 		}
 	}, {
 		key: 'initBackground',
@@ -108,6 +141,11 @@ var Game = (function () {
 			this.energies = [];
 		}
 	}, {
+		key: 'initParticles',
+		value: function initParticles() {
+			this.particles = [];
+		}
+	}, {
 		key: 'initEvents',
 		value: function initEvents() {
 			this.initCanvasEvents();
@@ -121,31 +159,12 @@ var Game = (function () {
 					y: this.canvas.height / 2
 				};
 
-				var x = evt.offsetX;
-				var y = evt.offsetY;
-
-				var offset = {
-					x: center.x - x,
-					y: center.y - y
+				var position = {
+					x: evt.offsetX,
+					y: evt.offsetY
 				};
 
-				var radian = 0;
-
-				if (x == center.x) {
-					radian = y < center.y ? 0 : Math.PI;
-				} else if (y == center.y) {
-					radian = x > center.x ? Math.PI / 2 : Math.PI * 3 / 2;
-				} else if (x > center.x && y < center.y) {
-					radian = Math.atan(offset.x / -offset.y);
-				} else if (x > center.x && y > center.y) {
-					radian = Math.atan(offset.y / offset.x) + Math.PI / 2;
-				} else if (x < center.x && y > center.y) {
-					radian = Math.atan(-offset.x / offset.y) + Math.PI;
-				} else {
-					radian = Math.atan(offset.y / offset.x) + Math.PI * 3 / 2;
-				}
-
-				this.shield.startRadian = radian;
+				this.shield.startRadian = calculateRadian(position, center);
 			}).bind(this), false);
 		}
 	}, {
@@ -158,15 +177,21 @@ var Game = (function () {
 			renderGame();
 
 			var enemyAndEnergyFactory = (function () {
-				var entry = this.createEnemyOrEnergy();
-				if (entry instanceof _enemy2['default']) {
-					this.enemies.push(entry);
+				var entity = this.createEnemyOrEnergy();
+				if (entity instanceof _enemy2['default']) {
+					this.enemies.push(entity);
 				} else {
-					this.energies.push(entry);
+					this.energies.push(entity);
 				}
 				setTimeout(enemyAndEnergyFactory.bind(this), 1000 + parseInt(Math.random() * 500));
 			}).bind(this);
 			enemyAndEnergyFactory();
+
+			var detectCollisionProxy = (function () {
+				this.detectCollision();
+				requestAnimationFrame(detectCollisionProxy);
+			}).bind(this);
+			detectCollisionProxy();
 		}
 	}, {
 		key: 'pause',
@@ -189,6 +214,7 @@ var Game = (function () {
 			this.renderCore();
 			this.renderEnemies();
 			this.renderEnergies();
+			this.renderParticles();
 		}
 	}, {
 		key: 'renderBackground',
@@ -217,6 +243,23 @@ var Game = (function () {
 			var toRetain = [];
 
 			this.enemies.forEach((function (enemy, index) {
+				// if(  enemy.isCompleteDied() ){
+				// 	return;
+				// }
+
+				// switch( enemy.status ){
+				// 	case Enemy.Status.ALIVE:
+				// 		enemy.x += enemy.speedX;
+				// 		enemy.y += enemy.speedY;
+
+				// 		if( enemy.x  > 0 && enemy.x < canvasWidth
+				// 			&& enemy.y > 0  && enemy.y < canvasHeight ){
+				// 			enemy.die();
+				// 		}
+
+				// 		break;
+				// }
+
 				enemy.x += enemy.speedX;
 				enemy.y += enemy.speedY;
 
@@ -227,7 +270,7 @@ var Game = (function () {
 				}
 			}).bind(this));
 
-			this.enemies = toRetain;
+			// this.enemies = toRetain;
 		}
 	}, {
 		key: 'renderEnergies',
@@ -248,6 +291,93 @@ var Game = (function () {
 			}).bind(this));
 
 			this.energies = toRetain;
+		}
+	}, {
+		key: 'renderParticles',
+		value: function renderParticles() {
+			var canvasWidth = this.canvas.width;
+			var canvasHeight = this.canvas.height;
+
+			var toRetain = [];
+
+			this.particles.forEach((function (particle, index) {
+				particle.opacity -= particle.fadeStep;
+
+				if (opacity.opacity > 0 && particle.x > 0 && particle.x < canvasWidth && particle.y > 0 && particle.y < canvasHeight) {
+
+					particle.render(this.canvas);
+					toRetain.push(particle);
+				}
+			}).bind(this));
+
+			this.particles = toRetain;
+		}
+	}, {
+		key: 'detectCollision',
+		value: function detectCollision() {
+			this.enemies.forEach((function (enemy, index) {
+				if (this.detectCollisionWithShield(enemy) || this.detectCollisionWithCore(enemy)) {
+
+					enemy.speedX *= -1;
+					enemy.speedY *= -1;
+				}
+			}).bind(this));
+
+			this.energies.forEach((function (energy, index) {
+				if (this.detectCollisionWithShield(energy) || this.detectCollisionWithCore(energy)) {
+
+					energy.speedX *= -1;
+					energy.speedY *= -1;
+				}
+			}).bind(this));
+		}
+	}, {
+		key: 'detectCollisionWithShield',
+		value: function detectCollisionWithShield(entity) {
+			var isCollision = false;
+
+			var center = {
+				x: this.canvas.width / 2,
+				y: this.canvas.height / 2
+			};
+
+			var distanceToCenter = Math.sqrt(Math.pow(entity.x - center.x, 2) + Math.pow(entity.y - center.y, 2));
+
+			if (distanceToCenter - entity.radius > this.shield.radius + this.shield.width || distanceToCenter + entity.radius < this.shield.radius) {
+
+				isCollision = false;
+			} else {
+				var radian = calculateRadian({
+					x: entity.x,
+					y: entity.y
+				}, center);
+
+				var shieldStartRadian = this.shield.startRadian - this.shield.radian / 2;
+				var shieldEndRadian = this.shield.startRadian + this.shield.radian / 2;
+
+				if (shieldStartRadian < 0) {
+					shieldStartRadian = Math.PI * 2 + shieldStartRadian;
+					isCollision = radian >= shieldStartRadian || radian <= shieldEndRadian ? true : false;
+				} else if (shieldEndRadian > Math.PI * 2) {
+					shieldEndRadian -= Math.PI * 2;
+					isCollision = radian <= shieldEndRadian || radian >= shieldStartRadian ? true : false;
+				} else {
+					isCollision = radian >= shieldStartRadian && radian <= shieldEndRadian ? true : false;
+				}
+			}
+
+			return isCollision;
+		}
+	}, {
+		key: 'detectCollisionWithCore',
+		value: function detectCollisionWithCore(entity) {
+			var isCollision = false;
+
+			var distanceToCenter = Math.sqrt(Math.pow(this.core.x - entity.x, 2) + Math.pow(this.core.y - entity.y, 2));
+
+			isCollision = distanceToCenter - entity.radius < this.core.radius;
+
+			return isCollision;
 		}
 	}, {
 		key: 'createEnemyOrEnergy',
@@ -320,10 +450,13 @@ var Game = (function () {
 
 			type == 'enemy' ? props.damage = radius : props.energy = radius;
 
-			var entry = type == 'enemy' ? new _enemy2['default'](props) : new _energy2['default'](props);
+			var entity = type == 'enemy' ? new _enemy2['default'](props) : new _energy2['default'](props);
 
-			return entry;
+			return entity;
 		}
+	}, {
+		key: 'createParticle',
+		value: function createParticle() {}
 	}]);
 
 	return Game;

@@ -4,6 +4,7 @@ export default class Circle{
 		this.y = props.y || 0;
 		this.radius = props.radius || 0;
 		this.color = props.color || 'black';
+		this.opacity = props.opacity || 1;
 	}
 
 	render( canvas ){
@@ -17,6 +18,7 @@ export default class Circle{
 		context.save();
 
 		context.fillStyle = this.color;
+		context.globalAlpha = this.opacity;
 		
 		context.beginPath();
 		context.arc( this.x, this.y, this.radius, 0, Math.PI * 2, false );

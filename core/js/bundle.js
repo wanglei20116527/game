@@ -61,6 +61,7 @@ var Circle = (function () {
 		this.y = props.y || 0;
 		this.radius = props.radius || 0;
 		this.color = props.color || 'black';
+		this.opacity = props.opacity || 1;
 	}
 
 	_createClass(Circle, [{
@@ -76,6 +77,7 @@ var Circle = (function () {
 			context.save();
 
 			context.fillStyle = this.color;
+			context.globalAlpha = this.opacity;
 
 			context.beginPath();
 			context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
@@ -153,6 +155,8 @@ Object.defineProperty(exports, '__esModule', {
 	value: true
 });
 
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
+
 var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -165,8 +169,18 @@ var _circle = require('./circle');
 
 var _circle2 = _interopRequireDefault(_circle);
 
+var _particle = require('./particle');
+
+var _particle2 = _interopRequireDefault(_particle);
+
 var Enemy = (function (_Circle) {
 	_inherits(Enemy, _Circle);
+
+	// static Status = {
+	// 	ALIVE: 'ALIVE',
+	// 	DIED: 'DIED',
+	// 	DYING: 'DYING'
+	// };
 
 	function Enemy(props) {
 		_classCallCheck(this, Enemy);
@@ -175,23 +189,101 @@ var Enemy = (function (_Circle) {
 
 		this.speedX = props.speedX || 0;
 		this.speedY = props.speedY || 0;
-		// this.accelecateX = props.accelecateX || 0;
-		// this.accelecateY = props.accelecateX || 0;
 
 		this.damage = props.damage || props.radius || 4;
+
+		// this.status = Enemy.Status.ALIVE;
+
+		// this.fragments = [];
 	}
+
+	// die(){
+	// 	this.status = Enemy.Status.DYING;
+
+	// 	const number_fragments = this.radius * 2;
+
+	// 	for( let i = 0; number_fragments; ++i ){
+	// 		let props = {
+	// 			x: this.x,
+	// 			y: this.y,
+	// 			radius: 1,
+	// 			opactiy: 1,
+	// 			color: this.color,
+	// 			fadeStep: parseInt( Math.random() * 4 ) + 2,
+	// 			speedX: this.speedX * ( -0.5 - Math.random() ),
+	// 			speedY: this.speedY * ( -0.5 - Math.random() )
+	// 		};
+
+	// 		this.fragments.push( new Particle( props ) );
+	// 	}
+	// }
+
+	// isCompleteDied(){
+	// 	if( this.status == Enemy.Status.DIED ){
+	// 		return true;
+	// 	}
+
+	// 	let isCompleteDied = false;
+
+	// 	if( this.status == Enemy.Status.DYING ){
+	// 		isCompleteDied = this.fragments.every(function( fragment ){
+	// 			return fragment.opactiy < 0;
+	// 		});
+	// 	}
+
+	// 	isCompleteDied && ( this.status = Enemy.Status.DIED );
+
+	// 	return isCompleteDied;
+	// }
+
+	_createClass(Enemy, [{
+		key: 'render',
+		value: function render(canvas) {
+			if (!canvas) {
+				console.error('Enemy draw function: canvas is %s', canvas);
+				return;
+			}
+
+			_get(Object.getPrototypeOf(Enemy.prototype), 'render', this).call(this, canvas);
+
+			// switch( this.status ){
+			// 	case Enemy.Status.ALIVE:
+			// 		super.render( canvas );
+			// 		break;
+
+			// 	case Enemy.Status.DYING:
+			// 		this.renderFragments( canvas );
+			// 		break;
+
+			// 	case Enemy.Status.DIED:
+			// 		console.log( 'The Enemy is died' );
+			// 		break;
+
+			// 	default:
+			// 		console.error( 'The status %s of Enemy is not valid', this.status );
+			// }
+		}
+
+		// renderFragments( canvas ){
+		// 	this.fragments.forEach(function( fragment ){
+		// 		fragment.render( canvas );
+		// 	});
+		// }
+	}]);
 
 	return Enemy;
 })(_circle2['default']);
 
 exports['default'] = Enemy;
 module.exports = exports['default'];
-},{"./circle":2}],5:[function(require,module,exports){
+},{"./circle":2,"./particle":7}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
 	value: true
 });
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
@@ -204,6 +296,10 @@ function _inherits(subClass, superClass) { if (typeof superClass !== 'function' 
 var _circle = require('./circle');
 
 var _circle2 = _interopRequireDefault(_circle);
+
+var _particle = require('./particle');
+
+var _particle2 = _interopRequireDefault(_particle);
 
 var Energy = (function (_Circle) {
 	_inherits(Energy, _Circle);
@@ -215,18 +311,28 @@ var Energy = (function (_Circle) {
 
 		this.speedX = props.speedX || 0;
 		this.speedY = props.speedY || 0;
-		this.accelecateX = props.accelecateX || 0;
-		this.accelecateY = props.accelecateX || 0;
 
 		this.enery = props.enery || props.radius || 4;
 	}
+
+	_createClass(Energy, [{
+		key: 'render',
+		value: function render(canvas) {
+			if (!canvas) {
+				console.error('Enemy draw function: canvas is %s', canvas);
+				return;
+			}
+
+			_get(Object.getPrototypeOf(Energy.prototype), 'render', this).call(this, canvas);
+		}
+	}]);
 
 	return Energy;
 })(_circle2['default']);
 
 exports['default'] = Energy;
 module.exports = exports['default'];
-},{"./circle":2}],6:[function(require,module,exports){
+},{"./circle":2,"./particle":7}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -251,6 +357,10 @@ var _energy = require('./energy');
 
 var _energy2 = _interopRequireDefault(_energy);
 
+var _particle = require('./particle');
+
+var _particle2 = _interopRequireDefault(_particle);
+
 var _background = require('./background');
 
 var _background2 = _interopRequireDefault(_background);
@@ -264,6 +374,34 @@ var requestAnimationFrame = (function () {
 		return setTimeout(callback, 1000 / 60);
 	};
 })();
+
+var calculateRadian = function calculateRadian(position, center) {
+	var x = position.x;
+	var y = position.y;
+
+	var offset = {
+		x: center.x - x,
+		y: center.y - y
+	};
+
+	var radian = 0;
+
+	if (x == center.x) {
+		radian = y < center.y ? 0 : Math.PI;
+	} else if (y == center.y) {
+		radian = x > center.x ? Math.PI / 2 : Math.PI * 3 / 2;
+	} else if (x > center.x && y < center.y) {
+		radian = Math.atan(offset.x / -offset.y);
+	} else if (x > center.x && y > center.y) {
+		radian = Math.atan(offset.y / offset.x) + Math.PI / 2;
+	} else if (x < center.x && y > center.y) {
+		radian = Math.atan(-offset.x / offset.y) + Math.PI;
+	} else {
+		radian = Math.atan(offset.y / offset.x) + Math.PI * 3 / 2;
+	}
+
+	return radian;
+};
 
 var Game = (function () {
 	function Game(canvas) {
@@ -283,6 +421,7 @@ var Game = (function () {
 			this.initCore();
 			this.initEnemies();
 			this.initEnergies();
+			this.initParticles();
 		}
 	}, {
 		key: 'initBackground',
@@ -337,6 +476,11 @@ var Game = (function () {
 			this.energies = [];
 		}
 	}, {
+		key: 'initParticles',
+		value: function initParticles() {
+			this.particles = [];
+		}
+	}, {
 		key: 'initEvents',
 		value: function initEvents() {
 			this.initCanvasEvents();
@@ -350,31 +494,12 @@ var Game = (function () {
 					y: this.canvas.height / 2
 				};
 
-				var x = evt.offsetX;
-				var y = evt.offsetY;
-
-				var offset = {
-					x: center.x - x,
-					y: center.y - y
+				var position = {
+					x: evt.offsetX,
+					y: evt.offsetY
 				};
 
-				var radian = 0;
-
-				if (x == center.x) {
-					radian = y < center.y ? 0 : Math.PI;
-				} else if (y == center.y) {
-					radian = x > center.x ? Math.PI / 2 : Math.PI * 3 / 2;
-				} else if (x > center.x && y < center.y) {
-					radian = Math.atan(offset.x / -offset.y);
-				} else if (x > center.x && y > center.y) {
-					radian = Math.atan(offset.y / offset.x) + Math.PI / 2;
-				} else if (x < center.x && y > center.y) {
-					radian = Math.atan(-offset.x / offset.y) + Math.PI;
-				} else {
-					radian = Math.atan(offset.y / offset.x) + Math.PI * 3 / 2;
-				}
-
-				this.shield.startRadian = radian;
+				this.shield.startRadian = calculateRadian(position, center);
 			}).bind(this), false);
 		}
 	}, {
@@ -387,15 +512,21 @@ var Game = (function () {
 			renderGame();
 
 			var enemyAndEnergyFactory = (function () {
-				var entry = this.createEnemyOrEnergy();
-				if (entry instanceof _enemy2['default']) {
-					this.enemies.push(entry);
+				var entity = this.createEnemyOrEnergy();
+				if (entity instanceof _enemy2['default']) {
+					this.enemies.push(entity);
 				} else {
-					this.energies.push(entry);
+					this.energies.push(entity);
 				}
 				setTimeout(enemyAndEnergyFactory.bind(this), 1000 + parseInt(Math.random() * 500));
 			}).bind(this);
 			enemyAndEnergyFactory();
+
+			var detectCollisionProxy = (function () {
+				this.detectCollision();
+				requestAnimationFrame(detectCollisionProxy);
+			}).bind(this);
+			detectCollisionProxy();
 		}
 	}, {
 		key: 'pause',
@@ -418,6 +549,7 @@ var Game = (function () {
 			this.renderCore();
 			this.renderEnemies();
 			this.renderEnergies();
+			this.renderParticles();
 		}
 	}, {
 		key: 'renderBackground',
@@ -446,6 +578,23 @@ var Game = (function () {
 			var toRetain = [];
 
 			this.enemies.forEach((function (enemy, index) {
+				// if(  enemy.isCompleteDied() ){
+				// 	return;
+				// }
+
+				// switch( enemy.status ){
+				// 	case Enemy.Status.ALIVE:
+				// 		enemy.x += enemy.speedX;
+				// 		enemy.y += enemy.speedY;
+
+				// 		if( enemy.x  > 0 && enemy.x < canvasWidth
+				// 			&& enemy.y > 0  && enemy.y < canvasHeight ){
+				// 			enemy.die();
+				// 		}
+
+				// 		break;
+				// }
+
 				enemy.x += enemy.speedX;
 				enemy.y += enemy.speedY;
 
@@ -456,7 +605,7 @@ var Game = (function () {
 				}
 			}).bind(this));
 
-			this.enemies = toRetain;
+			// this.enemies = toRetain;
 		}
 	}, {
 		key: 'renderEnergies',
@@ -477,6 +626,93 @@ var Game = (function () {
 			}).bind(this));
 
 			this.energies = toRetain;
+		}
+	}, {
+		key: 'renderParticles',
+		value: function renderParticles() {
+			var canvasWidth = this.canvas.width;
+			var canvasHeight = this.canvas.height;
+
+			var toRetain = [];
+
+			this.particles.forEach((function (particle, index) {
+				particle.opacity -= particle.fadeStep;
+
+				if (opacity.opacity > 0 && particle.x > 0 && particle.x < canvasWidth && particle.y > 0 && particle.y < canvasHeight) {
+
+					particle.render(this.canvas);
+					toRetain.push(particle);
+				}
+			}).bind(this));
+
+			this.particles = toRetain;
+		}
+	}, {
+		key: 'detectCollision',
+		value: function detectCollision() {
+			this.enemies.forEach((function (enemy, index) {
+				if (this.detectCollisionWithShield(enemy) || this.detectCollisionWithCore(enemy)) {
+
+					enemy.speedX *= -1;
+					enemy.speedY *= -1;
+				}
+			}).bind(this));
+
+			this.energies.forEach((function (energy, index) {
+				if (this.detectCollisionWithShield(energy) || this.detectCollisionWithCore(energy)) {
+
+					energy.speedX *= -1;
+					energy.speedY *= -1;
+				}
+			}).bind(this));
+		}
+	}, {
+		key: 'detectCollisionWithShield',
+		value: function detectCollisionWithShield(entity) {
+			var isCollision = false;
+
+			var center = {
+				x: this.canvas.width / 2,
+				y: this.canvas.height / 2
+			};
+
+			var distanceToCenter = Math.sqrt(Math.pow(entity.x - center.x, 2) + Math.pow(entity.y - center.y, 2));
+
+			if (distanceToCenter - entity.radius > this.shield.radius + this.shield.width || distanceToCenter + entity.radius < this.shield.radius) {
+
+				isCollision = false;
+			} else {
+				var radian = calculateRadian({
+					x: entity.x,
+					y: entity.y
+				}, center);
+
+				var shieldStartRadian = this.shield.startRadian - this.shield.radian / 2;
+				var shieldEndRadian = this.shield.startRadian + this.shield.radian / 2;
+
+				if (shieldStartRadian < 0) {
+					shieldStartRadian = Math.PI * 2 + shieldStartRadian;
+					isCollision = radian >= shieldStartRadian || radian <= shieldEndRadian ? true : false;
+				} else if (shieldEndRadian > Math.PI * 2) {
+					shieldEndRadian -= Math.PI * 2;
+					isCollision = radian <= shieldEndRadian || radian >= shieldStartRadian ? true : false;
+				} else {
+					isCollision = radian >= shieldStartRadian && radian <= shieldEndRadian ? true : false;
+				}
+			}
+
+			return isCollision;
+		}
+	}, {
+		key: 'detectCollisionWithCore',
+		value: function detectCollisionWithCore(entity) {
+			var isCollision = false;
+
+			var distanceToCenter = Math.sqrt(Math.pow(this.core.x - entity.x, 2) + Math.pow(this.core.y - entity.y, 2));
+
+			isCollision = distanceToCenter - entity.radius < this.core.radius;
+
+			return isCollision;
 		}
 	}, {
 		key: 'createEnemyOrEnergy',
@@ -549,10 +785,13 @@ var Game = (function () {
 
 			type == 'enemy' ? props.damage = radius : props.energy = radius;
 
-			var entry = type == 'enemy' ? new _enemy2['default'](props) : new _energy2['default'](props);
+			var entity = type == 'enemy' ? new _enemy2['default'](props) : new _energy2['default'](props);
 
-			return entry;
+			return entity;
 		}
+	}, {
+		key: 'createParticle',
+		value: function createParticle() {}
 	}]);
 
 	return Game;
@@ -560,7 +799,45 @@ var Game = (function () {
 
 exports['default'] = Game;
 module.exports = exports['default'];
-},{"./background":1,"./core":3,"./enemy":4,"./energy":5,"./shield":7}],7:[function(require,module,exports){
+},{"./background":1,"./core":3,"./enemy":4,"./energy":5,"./particle":7,"./shield":8}],7:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+	value: true
+});
+
+var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var _circle = require('./circle');
+
+var _circle2 = _interopRequireDefault(_circle);
+
+var Particle = (function (_Circle) {
+	_inherits(Particle, _Circle);
+
+	function Particle(props) {
+		_classCallCheck(this, Particle);
+
+		_get(Object.getPrototypeOf(Particle.prototype), 'constructor', this).call(this, props);
+
+		this.speedX = props.speedX || 0;
+		this.speedY = props.speedY || 0;
+
+		this.fadeStep = props.fadeStep || 0;
+	}
+
+	return Particle;
+})(_circle2['default']);
+
+exports['default'] = Particle;
+module.exports = exports['default'];
+},{"./circle":2}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -614,20 +891,7 @@ var Shiled = (function () {
 
 exports['default'] = Shiled;
 module.exports = exports['default'];
-},{}],8:[function(require,module,exports){
-// let energy = new Energy( canvas, {
-// 	x: 100,
-// 	y: 100,
-// 	radius: 7, // 4 -7
-// 	color: '#14DC93',
-// 	speedX: 2,
-// 	shieldY: 2,
-// 	accelecateX:1,
-// 	accelecateY: 1,
-
-// 	enery: 4
-// });
-
+},{}],9:[function(require,module,exports){
 'use strict';
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -641,4 +905,4 @@ var canvas = document.querySelector('.canvas');
 var game = new _componentsGame2['default'](canvas);
 
 game.start();
-},{"./components/game":6}]},{},[8]);
+},{"./components/game":6}]},{},[9]);
