@@ -32,7 +32,7 @@ var Circle = (function () {
 			context.save();
 
 			context.fillStyle = this.color;
-			context.globalAlpha = this.opacity;
+			context.globalAlpha = this.opacity >= 0 ? this.opacity : 0;
 
 			context.beginPath();
 			context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);

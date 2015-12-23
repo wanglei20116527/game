@@ -2,12 +2,6 @@ import Circle from './circle';
 import Particle from './particle';
 
 export default class Enemy extends Circle{
-	// static Status = {
-	// 	ALIVE: 'ALIVE',
-	// 	DIED: 'DIED',
-	// 	DYING: 'DYING'
-	// };
-
 	constructor( props ){
 		super( props );
 
@@ -16,79 +10,78 @@ export default class Enemy extends Circle{
 
 		this.damage = props.damage || props.radius || 4;
 
-		// this.status = Enemy.Status.ALIVE;
+		this.fragments = [];
 
-		// this.fragments = [];
+		this.isSmashed = false;
 	}
 
-	// die(){
-	// 	this.status = Enemy.Status.DYING;
-		
-	// 	const number_fragments = this.radius * 2;
+	move(){
+		if( this.isSmashed ){
+			this.fragments.forEach(function( fragment  ){
+				fragment.move();
+			});
+		}else{
+			this.x += this.speedX;
+			this.y += this.speedY;
+		}
+	}
 
-	// 	for( let i = 0; number_fragments; ++i ){
-	// 		let props = {
-	// 			x: this.x,
-	// 			y: this.y,
-	// 			radius: 1,
-	// 			opactiy: 1,
-	// 			color: this.color,
-	// 			fadeStep: parseInt( Math.random() * 4 ) + 2, 
-	// 			speedX: this.speedX * ( -0.5 - Math.random() ),
-	// 			speedY: this.speedY * ( -0.5 - Math.random() )
-	// 		};
+	fade(){
+		this.fragments.forEach(function( fragment ){
+			fragment.fade();
+		});
+	}
 
-	// 		this.fragments.push( new Particle( props ) );
-	// 	}
-	// }
+	smash(){
+		this.fragments = [];
 
-	// isCompleteDied(){
-	// 	if( this.status == Enemy.Status.DIED ){
-	// 		return true;
-	// 	}
-		
-	// 	let isCompleteDied = false;
+		const NUMBER_FRAGMENTS = parseInt( this.radius * 1.5 );
 
-	// 	if( this.status == Enemy.Status.DYING ){
-	// 		isCompleteDied = this.fragments.every(function( fragment ){
-	// 			return fragment.opactiy < 0;
-	// 		});
-	// 	}
+		const RADIAN_UNIT = Math.PI / 4 / NUMBER_FRAGMENTS;
 
-	// 	isCompleteDied && ( this.status = Enemy.Status.DIED );
+		let speed = Math.sqrt( Math.pow( this.speedX, 2 ) 
+						+ Math.pow( this.speedY, 2 ) );
 
-	// 	return isCompleteDied;
-	// }
+		for( let i = 0; i <=  NUMBER_FRAGMENTS; ++i ){
+			let speedX = speed * Math.sin(  i * RADIAN_UNIT ) * ( this.speedX > 0 ? -1 : 1 ) * ( Math.random() * 0.2 + 0.6 );
+			let speedY = speed * Math.cos( i * RADIAN_UNIT ) * ( this.speedY > 0 ? -1 : 1 ) * ( Math.random() * 0.2 + 0.6 );
+
+			this.fragments.push( new Particle({
+				x: this.x,
+				y: this.y,
+				radius: 1,
+				opacity: 1,
+				color: this.color,
+				speedX: speedX,
+				speedY: speedY,
+				fadeStep: ( parseInt( Math.random() * 2 ) + 1 ) / 100,
+			}) );
+		}
+
+		this.isSmashed = true;
+	}
+
+	isDie(){
+		if( !this.isSmashed ){
+			return false;
+		}
+
+		return this.fragments.forEach(function( fragment ){
+			return fragment.opacity < 0;
+		});
+	}
 
 	render( canvas ){
 		if( !canvas ){
 			console.error( 'Enemy draw function: canvas is %s', canvas );
 			return;
 		}
-
-		super.render( canvas );
-
-		// switch( this.status ){
-		// 	case Enemy.Status.ALIVE:
-		// 		super.render( canvas );
-		// 		break;
-
-		// 	case Enemy.Status.DYING:
-		// 		this.renderFragments( canvas );
-		// 		break;
-
-		// 	case Enemy.Status.DIED:
-		// 		console.log( 'The Enemy is died' );
-		// 		break;
-
-		// 	default:
-		// 		console.error( 'The status %s of Enemy is not valid', this.status );
-		// }
+		if( this.isSmashed ){
+			this.fragments.forEach(function( fragment ){
+				fragment.render( canvas  );
+			});
+		}else{
+			super.render( canvas );
+		}
 	}
-
-	// renderFragments( canvas ){
-	// 	this.fragments.forEach(function( fragment ){
-	// 		fragment.render( canvas );
-	// 	});
-	// }
 }

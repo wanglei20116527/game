@@ -63,7 +63,6 @@ export default class Game{
 		this.initCore();
 		this.initEnemies();
 		this.initEnergies();
-		this.initParticles();
 	}
 
 	initBackground(){
@@ -116,10 +115,6 @@ export default class Game{
 
 	initEnergies(){
 		this.energies = [];
-	}
-
-	initParticles(){
-		this.particles = [];
 	}
 
 	initEvents(){
@@ -186,7 +181,6 @@ export default class Game{
 		this.renderCore();
 		this.renderEnemies();
 		this.renderEnergies();
-		this.renderParticles();
 	}
 
 	renderBackground(){
@@ -209,38 +203,28 @@ export default class Game{
 		let canvasHeight = this.canvas.height;
 
 		let toRetain = [];
-
 		this.enemies.forEach(function( enemy, index ){
-			// if(  enemy.isCompleteDied() ){
-			// 	return;
-			// }
+			if( enemy.isSmashed ){
+				enemy.move();
+				enemy.fade();
 
-			// switch( enemy.status ){
-			// 	case Enemy.Status.ALIVE:
-			// 		enemy.x += enemy.speedX;
-			// 		enemy.y += enemy.speedY;
+				if( !enemy.isDie() ){
+					enemy.render( this.canvas );
+					toRetain.push( enemy );
+				}
 
-			// 		if( enemy.x  > 0 && enemy.x < canvasWidth 
-			// 			&& enemy.y > 0  && enemy.y < canvasHeight ){
-			// 			enemy.die();
-			// 		}
-
-			// 		break;
-			// }
-
-			enemy.x += enemy.speedX;
-			enemy.y += enemy.speedY;
-
-			if( enemy.x  > 0 && enemy.x < canvasWidth 
-				&& enemy.y > 0  && enemy.y < canvasHeight ){
-				
-				enemy.render( this.canvas );
-				toRetain.push( enemy );
+			}else{
+				if( enemy.x  + enemy.radius >= 0 && enemy.x - enemy.radius <= canvasWidth 
+					&& enemy.y + enemy.radius >= 0  && enemy.y -enemy.radius <= canvasHeight ){
+					
+					enemy.move();
+					enemy.render( this.canvas );
+					toRetain.push( enemy );
+				}
 			}
-	
 		}.bind(this));
 
-		// this.enemies = toRetain;
+		this.enemies = toRetain;
 	}
 
 	renderEnergies(){
@@ -249,58 +233,43 @@ export default class Game{
 
 		let toRetain = [];
 		this.energies.forEach(function( energy, index ){
-			energy.x += energy.speedX;
-			energy.y += energy.speedY;
+			if( energy.isSmashed ){
+				energy.move();
+				energy.fade();
 
-			if( energy.x  > 0 && energy.x < canvasWidth 
-				&& energy.y > 0  && energy.y < canvasHeight ){
-				
-				energy.render( this.canvas );
-				toRetain.push( energy );
+				if( !energy.isDie() ){
+					energy.render( this.canvas );
+					toRetain.push( energy );
+				}	
+			}else {
+				if(  energy.x  + energy.radius >= 0 && energy.x - energy.radius <= canvasWidth 
+					&& energy.y + energy.radius >= 0  && energy.y - energy.radius <= canvasHeight  ){
+					
+					energy.move();
+					energy.render( this.canvas );
+					toRetain.push( energy );
+				}
 			}
 		}.bind(this));
 
 		this.energies = toRetain;
 	}
 
-	renderParticles(){
-		let canvasWidth  = this.canvas.width;
-		let canvasHeight = this.canvas.height;
-
-		let toRetain = [];
-
-		this.particles.forEach(function( particle, index ){
-			particle.opacity -= particle.fadeStep;
-
-			if( opacity.opacity > 0 
-				&& particle.x > 0 && particle.x < canvasWidth
-					&&  particle.y > 0 && particle.y < canvasHeight ){
-
-				particle.render( this.canvas );
-				toRetain.push( particle );
-			}
-		}.bind(this) );
-
-		this.particles = toRetain;
-	}
-
 	detectCollision(){
 		this.enemies.forEach(function( enemy, index ){
-			if( this.detectCollisionWithShield( enemy ) 
-				|| this.detectCollisionWithCore( enemy ) ){
+			if( !enemy.isSmashed 
+				&& ( this.detectCollisionWithShield( enemy ) || this.detectCollisionWithCore( enemy ) ) ){
 
-				enemy.speedX *= -1;
-				enemy.speedY *= -1;
+				enemy.smash();
 			}
 
 		}.bind(this) );
 
 		this.energies.forEach(function( energy, index ){
-			if( this.detectCollisionWithShield( energy ) 
-				|| this.detectCollisionWithCore( energy ) ){
+			if( !energy.isSmashed 
+				&& ( this.detectCollisionWithShield( energy ) || this.detectCollisionWithCore( energy ) ) ){
 				
-				energy.speedX *= -1;
-				energy.speedY *= -1;
+				energy.smash();
 			}
 
 		}.bind(this));
@@ -432,10 +401,6 @@ export default class Game{
 		let entity = ( type == 'enemy' ) ? ( new Enemy( props ) ): ( new Energy( props ) );
 
 		return entity;
-	}
-
-	createParticle(){
-
 	}
 }
 

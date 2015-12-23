@@ -33,17 +33,48 @@ var Core = (function (_Circle) {
 		this.boundaryWidth = props.boundaryWidth || 0;
 
 		this.life = props.life || 100;
+
+		this.fragments = [];
+
+		this.isSmashed = false;
 	}
 
 	_createClass(Core, [{
-		key: 'render',
-		value: function render(canvas) {
+		key: 'moveFragemets',
+		value: function moveFragemets() {
+			this.fragments.forEach(function (fragment) {
+				fragment.move();
+			});
+		}
+	}, {
+		key: 'fadeFragments',
+		value: function fadeFragments() {
+			this.fragments.forEach(function (fragment) {
+				fragment.fade();
+			});
+		}
+	}, {
+		key: 'smash',
+		value: function smash() {
+			var NUMBER_FRAGMENTS = 180;
+
+			var RADINA_UNIT = Math.PI / NUMBER_FRAGMENTS;
+
+			for (var i = 0; i < NUMBER_FRAGMENTS; ++i) {}
+
+			this.isSmashed = true;
+		}
+	}, {
+		key: 'renderFragments',
+		value: function renderFragments(canvas) {
 			if (!canvas) {
-				console.error('Core render: canvas is %s', canvas);
+				console.error('Core renderFragments: canvas is %s', canvas);
 				return;
 			}
 
-			_get(Object.getPrototypeOf(Core.prototype), 'render', this).call(this, canvas);
+			this.fragments.forEach(function (fragment) {
+				fragment.render(canvas);
+			});
 		}
 	}]);
 

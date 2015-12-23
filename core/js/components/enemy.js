@@ -25,12 +25,6 @@ var _particle2 = _interopRequireDefault(_particle);
 var Enemy = (function (_Circle) {
 	_inherits(Enemy, _Circle);
 
-	// static Status = {
-	// 	ALIVE: 'ALIVE',
-	// 	DIED: 'DIED',
-	// 	DYING: 'DYING'
-	// };
-
 	function Enemy(props) {
 		_classCallCheck(this, Enemy);
 
@@ -41,83 +35,85 @@ var Enemy = (function (_Circle) {
 
 		this.damage = props.damage || props.radius || 4;
 
-		// this.status = Enemy.Status.ALIVE;
+		this.fragments = [];
 
-		// this.fragments = [];
+		this.isSmashed = false;
 	}
 
-	// die(){
-	// 	this.status = Enemy.Status.DYING;
-
-	// 	const number_fragments = this.radius * 2;
-
-	// 	for( let i = 0; number_fragments; ++i ){
-	// 		let props = {
-	// 			x: this.x,
-	// 			y: this.y,
-	// 			radius: 1,
-	// 			opactiy: 1,
-	// 			color: this.color,
-	// 			fadeStep: parseInt( Math.random() * 4 ) + 2,
-	// 			speedX: this.speedX * ( -0.5 - Math.random() ),
-	// 			speedY: this.speedY * ( -0.5 - Math.random() )
-	// 		};
-
-	// 		this.fragments.push( new Particle( props ) );
-	// 	}
-	// }
-
-	// isCompleteDied(){
-	// 	if( this.status == Enemy.Status.DIED ){
-	// 		return true;
-	// 	}
-
-	// 	let isCompleteDied = false;
-
-	// 	if( this.status == Enemy.Status.DYING ){
-	// 		isCompleteDied = this.fragments.every(function( fragment ){
-	// 			return fragment.opactiy < 0;
-	// 		});
-	// 	}
-
-	// 	isCompleteDied && ( this.status = Enemy.Status.DIED );
-
-	// 	return isCompleteDied;
-	// }
-
 	_createClass(Enemy, [{
+		key: 'move',
+		value: function move() {
+			if (this.isSmashed) {
+				this.fragments.forEach(function (fragment) {
+					fragment.move();
+				});
+			} else {
+				this.x += this.speedX;
+				this.y += this.speedY;
+			}
+		}
+	}, {
+		key: 'fade',
+		value: function fade() {
+			this.fragments.forEach(function (fragment) {
+				fragment.fade();
+			});
+		}
+	}, {
+		key: 'smash',
+		value: function smash() {
+			this.fragments = [];
+
+			var NUMBER_FRAGMENTS = parseInt(this.radius * 1.5);
+
+			var RADIAN_UNIT = Math.PI / 4 / NUMBER_FRAGMENTS;
+
+			var speed = Math.sqrt(Math.pow(this.speedX, 2) + Math.pow(this.speedY, 2));
+
+			for (var i = 0; i <= NUMBER_FRAGMENTS; ++i) {
+				var speedX = speed * Math.sin(i * RADIAN_UNIT) * (this.speedX > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+				var speedY = speed * Math.cos(i * RADIAN_UNIT) * (this.speedY > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+
+				this.fragments.push(new _particle2['default']({
+					x: this.x,
+					y: this.y,
+					radius: 1,
+					opacity: 1,
+					color: this.color,
+					speedX: speedX,
+					speedY: speedY,
+					fadeStep: (parseInt(Math.random() * 2) + 1) / 100
+				}));
+			}
+
+			this.isSmashed = true;
+		}
+	}, {
+		key: 'isDie',
+		value: function isDie() {
+			if (!this.isSmashed) {
+				return false;
+			}
+
+			return this.fragments.forEach(function (fragment) {
+				return fragment.opacity < 0;
+			});
+		}
+	}, {
 		key: 'render',
 		value: function render(canvas) {
 			if (!canvas) {
 				console.error('Enemy draw function: canvas is %s', canvas);
 				return;
 			}
-
-			_get(Object.getPrototypeOf(Enemy.prototype), 'render', this).call(this, canvas);
-
-			// switch( this.status ){
-			// 	case Enemy.Status.ALIVE:
-			// 		super.render( canvas );
-			// 		break;
-
-			// 	case Enemy.Status.DYING:
-			// 		this.renderFragments( canvas );
-			// 		break;
-
-			// 	case Enemy.Status.DIED:
-			// 		console.log( 'The Enemy is died' );
-			// 		break;
-
-			// 	default:
-			// 		console.error( 'The status %s of Enemy is not valid', this.status );
-			// }
+			if (this.isSmashed) {
+				this.fragments.forEach(function (fragment) {
+					fragment.render(canvas);
+				});
+			} else {
+				_get(Object.getPrototypeOf(Enemy.prototype), 'render', this).call(this, canvas);
+			}
 		}
-
-		// renderFragments( canvas ){
-		// 	this.fragments.forEach(function( fragment ){
-		// 		fragment.render( canvas );
-		// 	});
-		// }
 	}]);
 
 	return Enemy;

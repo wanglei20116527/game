@@ -11,14 +11,44 @@ export default class Core extends Circle{
 		this.boundaryWidth  = props.boundaryWidth|| 0;
 		
 		this.life = props.life || 100;
+
+		this.fragments = [];
+
+		this.isSmashed = false;
 	}
 
-	render( canvas ){
+	moveFragemets(){
+		this.fragments.forEach(function( fragment ){
+			fragment.move();
+		});
+	}
+
+	fadeFragments(){
+		this.fragments.forEach(function( fragment ){
+			fragment.fade();
+		});
+	}
+
+	smash(){	
+		const NUMBER_FRAGMENTS = 180;
+
+		const RADINA_UNIT = Math.PI / NUMBER_FRAGMENTS;
+
+		for( let i = 0; i < NUMBER_FRAGMENTS; ++i ){
+
+		}
+
+		this.isSmashed = true;
+	}
+
+	renderFragments( canvas ){
 		if( !canvas ){
-			console.error( 'Core render: canvas is %s', canvas );
+			console.error( 'Core renderFragments: canvas is %s', canvas );
 			return;
 		}
 
-		super.render( canvas );
+		this.fragments.forEach(function( fragment ){
+			fragment.render( canvas );
+		});
 	}
 }

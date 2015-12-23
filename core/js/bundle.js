@@ -77,7 +77,7 @@ var Circle = (function () {
 			context.save();
 
 			context.fillStyle = this.color;
-			context.globalAlpha = this.opacity;
+			context.globalAlpha = this.opacity >= 0 ? this.opacity : 0;
 
 			context.beginPath();
 			context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
@@ -176,12 +176,6 @@ var _particle2 = _interopRequireDefault(_particle);
 var Enemy = (function (_Circle) {
 	_inherits(Enemy, _Circle);
 
-	// static Status = {
-	// 	ALIVE: 'ALIVE',
-	// 	DIED: 'DIED',
-	// 	DYING: 'DYING'
-	// };
-
 	function Enemy(props) {
 		_classCallCheck(this, Enemy);
 
@@ -192,83 +186,85 @@ var Enemy = (function (_Circle) {
 
 		this.damage = props.damage || props.radius || 4;
 
-		// this.status = Enemy.Status.ALIVE;
+		this.fragments = [];
 
-		// this.fragments = [];
+		this.isSmashed = false;
 	}
 
-	// die(){
-	// 	this.status = Enemy.Status.DYING;
-
-	// 	const number_fragments = this.radius * 2;
-
-	// 	for( let i = 0; number_fragments; ++i ){
-	// 		let props = {
-	// 			x: this.x,
-	// 			y: this.y,
-	// 			radius: 1,
-	// 			opactiy: 1,
-	// 			color: this.color,
-	// 			fadeStep: parseInt( Math.random() * 4 ) + 2,
-	// 			speedX: this.speedX * ( -0.5 - Math.random() ),
-	// 			speedY: this.speedY * ( -0.5 - Math.random() )
-	// 		};
-
-	// 		this.fragments.push( new Particle( props ) );
-	// 	}
-	// }
-
-	// isCompleteDied(){
-	// 	if( this.status == Enemy.Status.DIED ){
-	// 		return true;
-	// 	}
-
-	// 	let isCompleteDied = false;
-
-	// 	if( this.status == Enemy.Status.DYING ){
-	// 		isCompleteDied = this.fragments.every(function( fragment ){
-	// 			return fragment.opactiy < 0;
-	// 		});
-	// 	}
-
-	// 	isCompleteDied && ( this.status = Enemy.Status.DIED );
-
-	// 	return isCompleteDied;
-	// }
-
 	_createClass(Enemy, [{
+		key: 'move',
+		value: function move() {
+			if (this.isSmashed) {
+				this.fragments.forEach(function (fragment) {
+					fragment.move();
+				});
+			} else {
+				this.x += this.speedX;
+				this.y += this.speedY;
+			}
+		}
+	}, {
+		key: 'fade',
+		value: function fade() {
+			this.fragments.forEach(function (fragment) {
+				fragment.fade();
+			});
+		}
+	}, {
+		key: 'smash',
+		value: function smash() {
+			this.fragments = [];
+
+			var NUMBER_FRAGMENTS = parseInt(this.radius * 1.5);
+
+			var RADIAN_UNIT = Math.PI / 4 / NUMBER_FRAGMENTS;
+
+			var speed = Math.sqrt(Math.pow(this.speedX, 2) + Math.pow(this.speedY, 2));
+
+			for (var i = 0; i <= NUMBER_FRAGMENTS; ++i) {
+				var speedX = speed * Math.sin(i * RADIAN_UNIT) * (this.speedX > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+				var speedY = speed * Math.cos(i * RADIAN_UNIT) * (this.speedY > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+
+				this.fragments.push(new _particle2['default']({
+					x: this.x,
+					y: this.y,
+					radius: 1,
+					opacity: 1,
+					color: this.color,
+					speedX: speedX,
+					speedY: speedY,
+					fadeStep: (parseInt(Math.random() * 2) + 1) / 100
+				}));
+			}
+
+			this.isSmashed = true;
+		}
+	}, {
+		key: 'isDie',
+		value: function isDie() {
+			if (!this.isSmashed) {
+				return false;
+			}
+
+			return this.fragments.forEach(function (fragment) {
+				return fragment.opacity < 0;
+			});
+		}
+	}, {
 		key: 'render',
 		value: function render(canvas) {
 			if (!canvas) {
 				console.error('Enemy draw function: canvas is %s', canvas);
 				return;
 			}
-
-			_get(Object.getPrototypeOf(Enemy.prototype), 'render', this).call(this, canvas);
-
-			// switch( this.status ){
-			// 	case Enemy.Status.ALIVE:
-			// 		super.render( canvas );
-			// 		break;
-
-			// 	case Enemy.Status.DYING:
-			// 		this.renderFragments( canvas );
-			// 		break;
-
-			// 	case Enemy.Status.DIED:
-			// 		console.log( 'The Enemy is died' );
-			// 		break;
-
-			// 	default:
-			// 		console.error( 'The status %s of Enemy is not valid', this.status );
-			// }
+			if (this.isSmashed) {
+				this.fragments.forEach(function (fragment) {
+					fragment.render(canvas);
+				});
+			} else {
+				_get(Object.getPrototypeOf(Enemy.prototype), 'render', this).call(this, canvas);
+			}
 		}
-
-		// renderFragments( canvas ){
-		// 	this.fragments.forEach(function( fragment ){
-		// 		fragment.render( canvas );
-		// 	});
-		// }
 	}]);
 
 	return Enemy;
@@ -313,17 +309,85 @@ var Energy = (function (_Circle) {
 		this.speedY = props.speedY || 0;
 
 		this.enery = props.enery || props.radius || 4;
+
+		this.fragments = [];
+
+		this.isSmashed = false;
 	}
 
 	_createClass(Energy, [{
+		key: 'move',
+		value: function move() {
+			if (this.isSmashed) {
+				this.fragments.forEach(function (fragment) {
+					fragment.move();
+				});
+			} else {
+				this.x += this.speedX;
+				this.y += this.speedY;
+			}
+		}
+	}, {
+		key: 'fade',
+		value: function fade() {
+			this.fragments.forEach(function (fragment) {
+				fragment.fade();
+			});
+		}
+	}, {
+		key: 'smash',
+		value: function smash() {
+			this.fragments = [];
+
+			var NUMBER_FRAGMENTS = parseInt(this.radius * 1.5);
+
+			var RADIAN_UNIT = Math.PI / 4 / NUMBER_FRAGMENTS;
+
+			var speed = Math.sqrt(Math.pow(this.speedX, 2) + Math.pow(this.speedY, 2));
+
+			for (var i = 0; i <= NUMBER_FRAGMENTS; ++i) {
+				var speedX = speed * Math.sin(i * RADIAN_UNIT) * (this.speedX > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+				var speedY = speed * Math.cos(i * RADIAN_UNIT) * (this.speedY > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+
+				this.fragments.push(new _particle2['default']({
+					x: this.x,
+					y: this.y,
+					radius: 1,
+					opacity: 1,
+					color: this.color,
+					speedX: speedX,
+					speedY: speedY,
+					fadeStep: (parseInt(Math.random() * 2) + 1) / 100
+				}));
+			}
+
+			this.isSmashed = true;
+		}
+	}, {
+		key: 'isDie',
+		value: function isDie() {
+			if (!this.isSmashed) {
+				return false;
+			}
+
+			return this.fragments.forEach(function (fragment) {
+				return fragment.opacity < 0;
+			});
+		}
+	}, {
 		key: 'render',
 		value: function render(canvas) {
 			if (!canvas) {
 				console.error('Enemy draw function: canvas is %s', canvas);
 				return;
 			}
-
-			_get(Object.getPrototypeOf(Energy.prototype), 'render', this).call(this, canvas);
+			if (this.isSmashed) {
+				this.fragments.forEach(function (fragment) {
+					fragment.render(canvas);
+				});
+			} else {
+				_get(Object.getPrototypeOf(Energy.prototype), 'render', this).call(this, canvas);
+			}
 		}
 	}]);
 
@@ -421,7 +485,6 @@ var Game = (function () {
 			this.initCore();
 			this.initEnemies();
 			this.initEnergies();
-			this.initParticles();
 		}
 	}, {
 		key: 'initBackground',
@@ -474,11 +537,6 @@ var Game = (function () {
 		key: 'initEnergies',
 		value: function initEnergies() {
 			this.energies = [];
-		}
-	}, {
-		key: 'initParticles',
-		value: function initParticles() {
-			this.particles = [];
 		}
 	}, {
 		key: 'initEvents',
@@ -549,7 +607,6 @@ var Game = (function () {
 			this.renderCore();
 			this.renderEnemies();
 			this.renderEnergies();
-			this.renderParticles();
 		}
 	}, {
 		key: 'renderBackground',
@@ -576,36 +633,26 @@ var Game = (function () {
 			var canvasHeight = this.canvas.height;
 
 			var toRetain = [];
-
 			this.enemies.forEach((function (enemy, index) {
-				// if(  enemy.isCompleteDied() ){
-				// 	return;
-				// }
+				if (enemy.isSmashed) {
+					enemy.move();
+					enemy.fade();
 
-				// switch( enemy.status ){
-				// 	case Enemy.Status.ALIVE:
-				// 		enemy.x += enemy.speedX;
-				// 		enemy.y += enemy.speedY;
+					if (!enemy.isDie()) {
+						enemy.render(this.canvas);
+						toRetain.push(enemy);
+					}
+				} else {
+					if (enemy.x + enemy.radius >= 0 && enemy.x - enemy.radius <= canvasWidth && enemy.y + enemy.radius >= 0 && enemy.y - enemy.radius <= canvasHeight) {
 
-				// 		if( enemy.x  > 0 && enemy.x < canvasWidth
-				// 			&& enemy.y > 0  && enemy.y < canvasHeight ){
-				// 			enemy.die();
-				// 		}
-
-				// 		break;
-				// }
-
-				enemy.x += enemy.speedX;
-				enemy.y += enemy.speedY;
-
-				if (enemy.x > 0 && enemy.x < canvasWidth && enemy.y > 0 && enemy.y < canvasHeight) {
-
-					enemy.render(this.canvas);
-					toRetain.push(enemy);
+						enemy.move();
+						enemy.render(this.canvas);
+						toRetain.push(enemy);
+					}
 				}
 			}).bind(this));
 
-			// this.enemies = toRetain;
+			this.enemies = toRetain;
 		}
 	}, {
 		key: 'renderEnergies',
@@ -615,54 +662,40 @@ var Game = (function () {
 
 			var toRetain = [];
 			this.energies.forEach((function (energy, index) {
-				energy.x += energy.speedX;
-				energy.y += energy.speedY;
+				if (energy.isSmashed) {
+					energy.move();
+					energy.fade();
 
-				if (energy.x > 0 && energy.x < canvasWidth && energy.y > 0 && energy.y < canvasHeight) {
+					if (!energy.isDie()) {
+						energy.render(this.canvas);
+						toRetain.push(energy);
+					}
+				} else {
+					if (energy.x + energy.radius >= 0 && energy.x - energy.radius <= canvasWidth && energy.y + energy.radius >= 0 && energy.y - energy.radius <= canvasHeight) {
 
-					energy.render(this.canvas);
-					toRetain.push(energy);
+						energy.move();
+						energy.render(this.canvas);
+						toRetain.push(energy);
+					}
 				}
 			}).bind(this));
 
 			this.energies = toRetain;
 		}
 	}, {
-		key: 'renderParticles',
-		value: function renderParticles() {
-			var canvasWidth = this.canvas.width;
-			var canvasHeight = this.canvas.height;
-
-			var toRetain = [];
-
-			this.particles.forEach((function (particle, index) {
-				particle.opacity -= particle.fadeStep;
-
-				if (opacity.opacity > 0 && particle.x > 0 && particle.x < canvasWidth && particle.y > 0 && particle.y < canvasHeight) {
-
-					particle.render(this.canvas);
-					toRetain.push(particle);
-				}
-			}).bind(this));
-
-			this.particles = toRetain;
-		}
-	}, {
 		key: 'detectCollision',
 		value: function detectCollision() {
 			this.enemies.forEach((function (enemy, index) {
-				if (this.detectCollisionWithShield(enemy) || this.detectCollisionWithCore(enemy)) {
+				if (!enemy.isSmashed && (this.detectCollisionWithShield(enemy) || this.detectCollisionWithCore(enemy))) {
 
-					enemy.speedX *= -1;
-					enemy.speedY *= -1;
+					enemy.smash();
 				}
 			}).bind(this));
 
 			this.energies.forEach((function (energy, index) {
-				if (this.detectCollisionWithShield(energy) || this.detectCollisionWithCore(energy)) {
+				if (!energy.isSmashed && (this.detectCollisionWithShield(energy) || this.detectCollisionWithCore(energy))) {
 
-					energy.speedX *= -1;
-					energy.speedY *= -1;
+					energy.smash();
 				}
 			}).bind(this));
 		}
@@ -789,9 +822,6 @@ var Game = (function () {
 
 			return entity;
 		}
-	}, {
-		key: 'createParticle',
-		value: function createParticle() {}
 	}]);
 
 	return Game;
@@ -805,6 +835,8 @@ module.exports = exports['default'];
 Object.defineProperty(exports, '__esModule', {
 	value: true
 });
+
+var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; desc = parent = getter = undefined; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
 
@@ -831,6 +863,29 @@ var Particle = (function (_Circle) {
 
 		this.fadeStep = props.fadeStep || 0;
 	}
+
+	_createClass(Particle, [{
+		key: 'move',
+		value: function move() {
+			this.x += this.speedX;
+			this.y += this.speedY;
+		}
+	}, {
+		key: 'fade',
+		value: function fade() {
+			this.opacity -= this.fadeStep;
+		}
+	}, {
+		key: 'render',
+		value: function render(canvas) {
+			if (!canvas) {
+				console.error('Particle draw function: canvas is %s', canvas);
+				return;
+			}
+
+			_get(Object.getPrototypeOf(Particle.prototype), 'render', this).call(this, canvas);
+		}
+	}]);
 
 	return Particle;
 })(_circle2['default']);
