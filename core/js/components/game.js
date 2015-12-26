@@ -14,13 +14,9 @@ var _shield = require('./shield');
 
 var _shield2 = _interopRequireDefault(_shield);
 
-var _enemy = require('./enemy');
+var _entity = require('./entity');
 
-var _enemy2 = _interopRequireDefault(_enemy);
-
-var _energy = require('./energy');
-
-var _energy2 = _interopRequireDefault(_energy);
+var _entity2 = _interopRequireDefault(_entity);
 
 var _particle = require('./particle');
 
@@ -68,24 +64,49 @@ var calculateRadian = function calculateRadian(position, center) {
 	return radian;
 };
 
+var _events = {};
+
 var Game = (function () {
-	function Game(canvas) {
+	function Game(canvas, gameOverCallback) {
 		_classCallCheck(this, Game);
 
 		this.canvas = canvas;
+		this.gameOverCallback = gameOverCallback;
+
+		this.background = null;
+		this.shield = null;
+		this.core = null;
+		this.entities = [];
+
+		this.isPending = false;
+		this.isStop = false;
 
 		this.initComponents();
 		this.initEvents();
+
+		window.game = this;
 	}
 
 	_createClass(Game, [{
+		key: 'destructor',
+		value: function destructor() {
+			this.canvas = null;
+			this.background = null;
+			this.shield = null;
+			this.core = null;
+			this.entities = null;
+			this.isPending = false;
+			this.isStop = false;
+
+			this.clearEvents();
+		}
+	}, {
 		key: 'initComponents',
 		value: function initComponents() {
 			this.initBackground();
 			this.initShield();
 			this.initCore();
-			this.initEnemies();
-			this.initEnergies();
+			this.initEntities();
 		}
 	}, {
 		key: 'initBackground',
@@ -94,10 +115,10 @@ var Game = (function () {
 
 			var backgroundColor = context.createRadialGradient(this.canvas.width / 2, this.canvas.height / 2, 100, this.canvas.width / 2, this.canvas.height / 2, Math.sqrt(Math.pow(this.canvas.width, 2) + Math.pow(this.canvas.height, 2)));
 
-			backgroundColor.addColorStop(0, '#004545');
-			backgroundColor.addColorStop(0.5, '#003839');
-			backgroundColor.addColorStop(0.75, '#002D2F');
-			backgroundColor.addColorStop(1, '#001B1F');
+			backgroundColor.addColorStop(0, '#004646');
+			backgroundColor.addColorStop(0.25, '#002B2E');
+			backgroundColor.addColorStop(0.5, '#001E22');
+			backgroundColor.addColorStop(1, '#001217');
 
 			this.background = new _background2['default']({
 				color: backgroundColor
@@ -126,18 +147,13 @@ var Game = (function () {
 				color: '#19CABB',
 				boundaryColor: 'yellow',
 				boundaryWidth: 2,
-				life: 100
+				enery: 100
 			});
 		}
 	}, {
-		key: 'initEnemies',
-		value: function initEnemies() {
-			this.enemies = [];
-		}
-	}, {
-		key: 'initEnergies',
-		value: function initEnergies() {
-			this.energies = [];
+		key: 'initEntities',
+		value: function initEntities() {
+			this.entities = [];
 		}
 	}, {
 		key: 'initEvents',
@@ -147,7 +163,7 @@ var Game = (function () {
 	}, {
 		key: 'initCanvasEvents',
 		value: function initCanvasEvents() {
-			this.canvas.addEventListener('mousemove', (function (evt) {
+			_events.mousemove = (function (evt) {
 				var center = {
 					x: this.canvas.width / 2,
 					y: this.canvas.height / 2
@@ -159,38 +175,93 @@ var Game = (function () {
 				};
 
 				this.shield.startRadian = calculateRadian(position, center);
-			}).bind(this), false);
+			}).bind(this);
+
+			this.canvas.addEventListener('mousemove', _events.mousemove, false);
+		}
+	}, {
+		key: 'clearEvents',
+		value: function clearEvents() {
+			this.clearCanvasEvents();
+		}
+	}, {
+		key: 'clearCanvasEvents',
+		value: function clearCanvasEvents() {
+			this.canvas.removeEventListener('mousemove', _events.mousemove, false);
 		}
 	}, {
 		key: 'start',
 		value: function start() {
-			var renderGame = (function () {
-				this.render();
-				requestAnimationFrame(renderGame);
-			}).bind(this);
-			renderGame();
+			var _this = this;
 
-			var enemyAndEnergyFactory = (function () {
-				var entity = this.createEnemyOrEnergy();
-				if (entity instanceof _enemy2['default']) {
-					this.enemies.push(entity);
-				} else {
-					this.energies.push(entity);
+			this.isPending = true;
+
+			var renderProxy = (function () {
+				if (this.isGameOver()) {
+					return;
 				}
-				setTimeout(enemyAndEnergyFactory.bind(this), 1000 + parseInt(Math.random() * 500));
+
+				this.isPending && this.render();
+				requestAnimationFrame(renderProxy);
 			}).bind(this);
-			enemyAndEnergyFactory();
+			renderProxy();
+
+			var createEntityProxy = (function () {
+				if (this.isGameOver()) {
+					return;
+				}
+
+				this.isPending && this.createEntity();
+				setTimeout(createEntityProxy.bind(this), 1000 + parseInt(Math.random() * 500));
+			}).bind(this);
+			createEntityProxy();
+
+			var recycleProxy = (function () {
+				if (this.isGameOver()) {
+					return;
+				}
+
+				this.recycle();
+				requestAnimationFrame(recycleProxy);
+			}).bind(this);
+			recycleProxy();
 
 			var detectCollisionProxy = (function () {
-				this.detectCollision();
+				if (this.isGameOver()) {
+					return;
+				}
+
+				this.isPending && this.detectCollision();
 				requestAnimationFrame(detectCollisionProxy);
 			}).bind(this);
 			detectCollisionProxy();
+
+			if (this.gameOverCallback && typeof this.gameOverCallback == 'function') {
+				(function () {
+					var detectGameOverProxy = (function () {
+						var isGameOver = this.isGameOver;
+
+						isGameOver && this.gameOverCallback && this.gameOverCallback();
+						isGameOver || requestAnimationFrame(detectGameOverProxy);
+					}).bind(_this);
+					detectGameOverProxy();
+				})();
+			}
 		}
 	}, {
 		key: 'pause',
 		value: function pause() {
 			this.isPending = false;
+		}
+	}, {
+		key: 'restart',
+		value: function restart() {
+			this.isPending = true;
+		}
+	}, {
+		key: 'stop',
+		value: function stop() {
+			this.isStop = true;
 		}
 	}, {
 		key: 'render',
@@ -206,8 +277,7 @@ var Game = (function () {
 			this.renderBackground();
 			this.renderShield();
 			this.renderCore();
-			this.renderEnemies();
-			this.renderEnergies();
+			this.renderEntities();
 		}
 	}, {
 		key: 'renderBackground',
@@ -225,78 +295,92 @@ var Game = (function () {
 		key: 'renderCore',
 		value: function renderCore() {
 			this.core || this.initCore();
-			this.core.render(this.canvas);
+
+			if (this.core.isSmashed) {
+				this.core.fadeFragments();
+				this.core.moveFragments();
+				this.core.renderFragments(this.canvas);
+			} else {
+				this.core.render(this.canvas);
+			}
 		}
 	}, {
-		key: 'renderEnemies',
-		value: function renderEnemies() {
-			var canvasWidth = this.canvas.width;
-			var canvasHeight = this.canvas.height;
+		key: 'renderEntities',
+		value: function renderEntities() {
+			this.entities || this.initEntities();
 
-			var toRetain = [];
-			this.enemies.forEach((function (enemy, index) {
-				if (enemy.isSmashed) {
-					enemy.move();
-					enemy.fade();
+			this.entities.forEach((function (entity) {
+				if (entity.isSmashed) {
+					entity.fadeFragments();
+					entity.moveFragments();
 
-					if (!enemy.isDie()) {
-						enemy.render(this.canvas);
-						toRetain.push(enemy);
-					}
+					entity.renderFragments(this.canvas);
 				} else {
-					if (enemy.x + enemy.radius >= 0 && enemy.x - enemy.radius <= canvasWidth && enemy.y + enemy.radius >= 0 && enemy.y - enemy.radius <= canvasHeight) {
+					entity.move();
 
-						enemy.move();
-						enemy.render(this.canvas);
-						toRetain.push(enemy);
-					}
+					entity.render(this.canvas);
+				}
+			}).bind(this));
+		}
+	}, {
+		key: 'recycle',
+		value: function recycle() {
+			this.recyleEntities();
+		}
+	}, {
+		key: 'recyleEntities',
+		value: function recyleEntities() {
+			var toRetain = [];
+
+			this.entities.forEach((function (entity) {
+				if (!entity.canDestory() && !this.isOutBoundary(entity)) {
+					toRetain.push(entity);
 				}
 			}).bind(this));
 
-			this.enemies = toRetain;
+			this.entities = toRetain;
 		}
 	}, {
-		key: 'renderEnergies',
-		value: function renderEnergies() {
+		key: 'isOutBoundary',
+		value: function isOutBoundary(entity) {
 			var canvasWidth = this.canvas.width;
 			var canvasHeight = this.canvas.height;
 
-			var toRetain = [];
-			this.energies.forEach((function (energy, index) {
-				if (energy.isSmashed) {
-					energy.move();
-					energy.fade();
+			if (entity.x + entity.radius >= 0 && entity.x - entity.radius <= canvasWidth && entity.y + entity.radius >= 0 && entity.y - entity.radius <= canvasWidth) {
 
-					if (!energy.isDie()) {
-						energy.render(this.canvas);
-						toRetain.push(energy);
-					}
-				} else {
-					if (energy.x + energy.radius >= 0 && energy.x - energy.radius <= canvasWidth && energy.y + energy.radius >= 0 && energy.y - energy.radius <= canvasHeight) {
+				return false;
+			}
 
-						energy.move();
-						energy.render(this.canvas);
-						toRetain.push(energy);
-					}
-				}
-			}).bind(this));
-
-			this.energies = toRetain;
+			return true;
 		}
 	}, {
 		key: 'detectCollision',
 		value: function detectCollision() {
-			this.enemies.forEach((function (enemy, index) {
-				if (!enemy.isSmashed && (this.detectCollisionWithShield(enemy) || this.detectCollisionWithCore(enemy))) {
-
-					enemy.smash();
+			this.entities.forEach((function (entity) {
+				if (entity.isSmashed) {
+					return;
 				}
-			}).bind(this));
 
-			this.energies.forEach((function (energy, index) {
-				if (!energy.isSmashed && (this.detectCollisionWithShield(energy) || this.detectCollisionWithCore(energy))) {
+				if (this.detectCollisionWithShield(entity)) {
+					entity.smash();
+					return;
+				}
 
-					energy.smash();
+				if (this.detectCollisionWithCore(entity) && !this.core.isSmashed) {
+					entity.smash();
+
+					switch (entity.type) {
+						case _entity.EntityType.ENEMY:
+							this.core.radius -= entity.radius;
+							break;
+
+						case _entity.EntityType.ENERGY:
+							this.core.radius += entity.radius;
+							break;
+					}
+
+					this.core.radius < 0 && this.core.smash();
+					return;
 				}
 			}).bind(this));
 		}
@@ -340,6 +424,10 @@ var Game = (function () {
 	}, {
 		key: 'detectCollisionWithCore',
 		value: function detectCollisionWithCore(entity) {
+			if (this.core.life <= 0) {
+				return false;
+			}
+
 			var isCollision = false;
 
 			var distanceToCenter = Math.sqrt(Math.pow(this.core.x - entity.x, 2) + Math.pow(this.core.y - entity.y, 2));
@@ -349,8 +437,13 @@ var Game = (function () {
 			return isCollision;
 		}
 	}, {
-		key: 'createEnemyOrEnergy',
-		value: function createEnemyOrEnergy() {
+		key: 'isGameOver',
+		value: function isGameOver() {
+			return this.core.canDestory();
+		}
+	}, {
+		key: 'createEntity',
+		value: function createEntity() {
 			var canvasWidth = this.canvas.width;
 			var canvasHeight = this.canvas.height;
 			var canvasCenter = {
@@ -358,70 +451,69 @@ var Game = (function () {
 				y: canvasHeight / 2
 			};
 
-			var type = 'enemy';
+			var type = undefined;
+			var color = undefined;
 			switch (parseInt(Math.random() * 5)) {
 				case 0:
 				case 1:
 				case 2:
 				case 3:
-					type = 'enemy';
+					type = _entity.EntityType.ENEMY;
+					color = 'red';
 					break;
 
 				case 4:
-					type = 'energy';
+					type = _entity.EntityType.ENERGY;
+					color = '#14DC93';
 					break;
 			}
 
-			var color = type == 'enemy' ? 'red' : '#14DC93';
-			var radius = parseInt(Math.random() * 3) + 4;
-
-			var position = {};
+			var x = 0;
+			var y = 0;
 			switch (parseInt(Math.random() * 3)) {
 				case 0:
-					position.x = parseInt(canvasWidth * Math.random());
-					position.y = 0;
+					x = parseInt(canvasWidth * Math.random());
+					y = 0;
 					break;
 				case 1:
-					position.x = canvasWidth;
-					position.y = parseInt(canvasHeight * Math.random());
+					x = canvasWidth;
+					y = parseInt(canvasHeight * Math.random());
 					break;
 				case 2:
-					position.x = parseInt(canvasWidth * Math.random());
-					position.y = canvasHeight;
+					x = parseInt(canvasWidth * Math.random());
+					y = canvasHeight;
 					break;
 				case 3:
-					position.x = 0;
-					position.y = parseInt(canvasHeight * Math.random());
+					x = 0;
+					y = parseInt(canvasHeight * Math.random());
 					break;
 			}
+
+			var radius = parseInt(Math.random() * 3) + 4;
 
 			var speedX = 0;
 			var speedY = 0;
 			var speedRatio = 1;
-			if (Math.abs(canvasCenter.x - position.x) > Math.abs(canvasCenter.y - position.y)) {
-				speedRatio = Math.abs((canvasCenter.y - position.y) / (canvasCenter.x - position.x));
-				speedX = (1 + Math.random()) * (canvasCenter.x > position.x ? 1 : -1);
-				speedY = Math.abs(speedX * speedRatio) * (canvasCenter.y > position.y ? 1 : -1);
+			if (Math.abs(canvasCenter.x - x) > Math.abs(canvasCenter.y - y)) {
+				speedRatio = Math.abs((canvasCenter.y - y) / (canvasCenter.x - x));
+				speedX = (1 + Math.random()) * (canvasCenter.x > x ? 1 : -1);
+				speedY = Math.abs(speedX * speedRatio) * (canvasCenter.y > y ? 1 : -1);
 			} else {
-				speedRatio = Math.abs((canvasCenter.x - position.x) / (canvasCenter.y - position.y));
-				speedY = (1 + Math.random()) * (canvasCenter.y > position.y ? 1 : -1);
-				speedX = Math.abs(speedY * speedRatio) * (canvasCenter.x > position.x ? 1 : -1);
+				speedRatio = Math.abs((canvasCenter.x - x) / (canvasCenter.y - y));
+				speedY = (1 + Math.random()) * (canvasCenter.y > y ? 1 : -1);
+				speedX = Math.abs(speedY * speedRatio) * (canvasCenter.x > x ? 1 : -1);
 			}
 
-			var props = {
-				color: color,
-				x: position.x,
-				y: position.y,
+			this.entities.push(new _entity2['default']({
+				type: type,
+				x: x,
+				y: y,
 				radius: radius,
+				opacity: 1,
+				color: color,
 				speedX: speedX,
 				speedY: speedY
-			};
-
-			type == 'enemy' ? props.damage = radius : props.energy = radius;
-
-			var entity = type == 'enemy' ? new _enemy2['default'](props) : new _energy2['default'](props);
-
-			return entity;
+			}));
 		}
 	}]);
 

@@ -1,9 +1,10 @@
 import Shield from './shield';
-import Enemy from './enemy';
-import Energy from './energy';
+import Entity from './entity';
 import Particle from './particle';
 import Background from './background';
 import Core from './core';
+
+import { EntityType } from './entity';
 
 let requestAnimationFrame = (function(){
 	return 	window.requestAnimationFrame               ||
@@ -49,20 +50,44 @@ let calculateRadian = function( position, center ){
 	return radian;
 }
 
+let _events = {};
+
 export default class Game{
-	constructor( canvas ){
+	constructor( canvas, gameOverCallback ){
 		this.canvas = canvas;
+		this.gameOverCallback = gameOverCallback; 
+
+		this.background = null;
+		this.shield = null;
+		this.core = null;
+		this.entities = [];
+
+		this.isPending = false;
+		this.isStop = false;
 
 		this.initComponents();
 		this.initEvents();
+
+		window.game = this;
+	}
+
+	destructor(){
+		this.canvas = null;
+		this.background = null;
+		this.shield = null;
+		this.core = null;
+		this.entities = null;
+		this.isPending = false;
+		this.isStop = false;
+
+		this.clearEvents();
 	}
 
 	initComponents(){
 		this.initBackground();
 		this.initShield();
 		this.initCore();
-		this.initEnemies();
-		this.initEnergies();
+		this.initEntities();
 	}
 
 	initBackground(){
@@ -75,10 +100,10 @@ export default class Game{
 						          			this.canvas.height / 2, 
 						          			Math.sqrt( Math.pow( this.canvas.width, 2 ) + Math.pow( this.canvas.height, 2 ) ) );
 
-		backgroundColor.addColorStop( 0, '#004545' );
-		backgroundColor.addColorStop( 0.5, '#003839' );
-		backgroundColor.addColorStop( 0.75, '#002D2F' );
-		backgroundColor.addColorStop( 1, '#001B1F' );
+		backgroundColor.addColorStop( 0, '#004646' );
+		backgroundColor.addColorStop( 0.25, '#002B2E' );
+		backgroundColor.addColorStop( 0.5, '#001E22' );
+		backgroundColor.addColorStop( 1,  '#001217' );
 
 		this.background = new Background({
 			color: backgroundColor
@@ -105,16 +130,12 @@ export default class Game{
 			color: '#19CABB',
 			boundaryColor: 'yellow',
 			boundaryWidth: 2,
-			life: 100
+			enery: 100
 		});
 	}
 
-	initEnemies(){
-		this.enemies = [];
-	}
-
-	initEnergies(){
-		this.energies = [];
+	initEntities(){
+		this.entities = [];
 	}
 
 	initEvents(){
@@ -122,11 +143,11 @@ export default class Game{
 	}
 
 	initCanvasEvents(){
-		this.canvas.addEventListener('mousemove', function( evt ){
+		_events.mousemove = function( evt ){
 			let center = {
 				x: this.canvas.width / 2,
 				y:  this.canvas.height / 2
-			}
+			};
 
 			let position = {
 				x: evt.offsetX,
@@ -134,37 +155,83 @@ export default class Game{
 			};
 
 			this.shield.startRadian = calculateRadian( position, center );
+		}.bind(this);
 
-		}.bind(this), false);	
+		this.canvas.addEventListener('mousemove', _events.mousemove, false );	
+	}
+
+	clearEvents(){
+		this.clearCanvasEvents();
+	}
+
+	clearCanvasEvents(){
+		this.canvas.removeEventListener('mousemove', _events.mousemove, false);
 	}
 
 	start(){
-		let renderGame = function(){
-			this.render();
-			requestAnimationFrame( renderGame );
-		}.bind(this);
-		renderGame();
+		this.isPending = true;
 
-		let enemyAndEnergyFactory = function(){
-			let entity = this.createEnemyOrEnergy() ;
-			if( entity instanceof Enemy ){
-				this.enemies.push(  entity ) ;	
-			}else{
-				this.energies.push( entity );
+		let renderProxy = function(){
+			if( this.isGameOver() ){
+				return;
 			}
-			setTimeout( enemyAndEnergyFactory.bind(this), 1000 + parseInt( Math.random() * 500 ) );
+
+			this.isPending && this.render();
+			requestAnimationFrame( renderProxy );
 		}.bind(this);
-		enemyAndEnergyFactory();
+		renderProxy();
+
+		let createEntityProxy = function(){
+			if( this.isGameOver() ){
+				return;
+			}
+
+			this.isPending && this.createEntity();
+			setTimeout( createEntityProxy.bind(this), 1000 + parseInt( Math.random() * 500 ) );
+		}.bind(this);
+		createEntityProxy();
+
+		let recycleProxy = function(){
+			if( this.isGameOver() ){
+				return;
+			}
+
+			this.recycle();
+			requestAnimationFrame( recycleProxy );
+		}.bind(this);
+		recycleProxy();
 
 		let detectCollisionProxy = function(){
-			this.detectCollision();
+			if( this.isGameOver() ){
+				return;
+			}
+
+		 	this.isPending && this.detectCollision();
 			requestAnimationFrame( detectCollisionProxy );
 		}.bind(this);
 		detectCollisionProxy();
+
+		if( this.gameOverCallback && typeof this.gameOverCallback == 'function' ){
+			let detectGameOverProxy = function(){
+				let isGameOver = this.isGameOver;
+
+				isGameOver && this.gameOverCallback && this.gameOverCallback();
+				isGameOver || requestAnimationFrame( detectGameOverProxy );
+			}.bind(this);
+			detectGameOverProxy();
+		}
 	}
 
 	pause(){
 		this.isPending = false;
+	}
+
+	restart(){
+		this.isPending = true;
+	}
+
+	stop(){
+		this.isStop = true;
 	}
 
 	render(){
@@ -179,8 +246,7 @@ export default class Game{
 		this.renderBackground();
 		this.renderShield();
 		this.renderCore();
-		this.renderEnemies();
-		this.renderEnergies();
+		this.renderEntities();
 	}
 
 	renderBackground(){
@@ -195,84 +261,93 @@ export default class Game{
 
 	renderCore(){
 		this.core || this.initCore();
-		this.core.render( this.canvas );
+
+		if( this.core.isSmashed ){
+			this.core.fadeFragments();
+			this.core.moveFragments();
+			this.core.renderFragments( this.canvas );
+		}else{
+			this.core.render( this.canvas );
+		}
 	}
 
-	renderEnemies(){
-		let canvasWidth  = this.canvas.width;
-		let canvasHeight = this.canvas.height;
+	renderEntities(){
+		this.entities || this.initEntities();
 
-		let toRetain = [];
-		this.enemies.forEach(function( enemy, index ){
-			if( enemy.isSmashed ){
-				enemy.move();
-				enemy.fade();
+		this.entities.forEach(function( entity ){
+			if( entity.isSmashed ){
+				entity.fadeFragments();
+				entity.moveFragments();
 
-				if( !enemy.isDie() ){
-					enemy.render( this.canvas );
-					toRetain.push( enemy );
-				}
-
+				entity.renderFragments( this.canvas );
 			}else{
-				if( enemy.x  + enemy.radius >= 0 && enemy.x - enemy.radius <= canvasWidth 
-					&& enemy.y + enemy.radius >= 0  && enemy.y -enemy.radius <= canvasHeight ){
-					
-					enemy.move();
-					enemy.render( this.canvas );
-					toRetain.push( enemy );
-				}
-			}
-		}.bind(this));
+				entity.move();
 
-		this.enemies = toRetain;
+				entity.render( this.canvas );
+			}
+		}.bind(this) );
 	}
 
-	renderEnergies(){
-		let canvasWidth  = this.canvas.width;
-		let canvasHeight = this.canvas.height;
+	recycle(){
+		this.recyleEntities();
+	}
 
+	recyleEntities(){
 		let toRetain = [];
-		this.energies.forEach(function( energy, index ){
-			if( energy.isSmashed ){
-				energy.move();
-				energy.fade();
 
-				if( !energy.isDie() ){
-					energy.render( this.canvas );
-					toRetain.push( energy );
-				}	
-			}else {
-				if(  energy.x  + energy.radius >= 0 && energy.x - energy.radius <= canvasWidth 
-					&& energy.y + energy.radius >= 0  && energy.y - energy.radius <= canvasHeight  ){
-					
-					energy.move();
-					energy.render( this.canvas );
-					toRetain.push( energy );
-				}
-			}
-		}.bind(this));
-
-		this.energies = toRetain;
-	}
-
-	detectCollision(){
-		this.enemies.forEach(function( enemy, index ){
-			if( !enemy.isSmashed 
-				&& ( this.detectCollisionWithShield( enemy ) || this.detectCollisionWithCore( enemy ) ) ){
-
-				enemy.smash();
+		this.entities.forEach(function( entity ){
+			if( !entity.canDestory() && !this.isOutBoundary( entity )  ){
+				toRetain.push( entity );
 			}
 
 		}.bind(this) );
 
-		this.energies.forEach(function( energy, index ){
-			if( !energy.isSmashed 
-				&& ( this.detectCollisionWithShield( energy ) || this.detectCollisionWithCore( energy ) ) ){
-				
-				energy.smash();
+		this.entities = toRetain;
+	}
+
+	isOutBoundary( entity ){
+		let canvasWidth  = this.canvas.width;
+		let canvasHeight = this.canvas.height;
+
+		if( entity.x +  entity.radius >= 0 && entity.x - entity.radius <= canvasWidth 
+			&& entity.y + entity.radius >= 0 && entity.y - entity.radius <= canvasWidth ){
+			
+			return false;
+		}
+
+		return true;
+	}
+
+	
+	detectCollision(){
+		this.entities.forEach(function( entity ){
+			if( entity.isSmashed ){
+				return;
 			}
 
-		}.bind(this));
+			if( this.detectCollisionWithShield( entity ) ){
+				entity.smash();
+				return;
+			}
+
+			if( this.detectCollisionWithCore( entity ) && !this.core.isSmashed ){
+				entity.smash();
+
+				switch(  entity.type ){
+					case EntityType.ENEMY:
+						this.core.radius -= entity.radius;
+						break;
+
+					case EntityType.ENERGY:
+						this.core.radius += entity.radius;
+						break;
+				}
+
+				this.core.radius < 0 && this.core.smash();
+				return;
+			}
+
+		}.bind(this) );
 	}
 
 	detectCollisionWithShield( entity ){
@@ -319,6 +394,10 @@ export default class Game{
 	}
 
 	detectCollisionWithCore( entity ){
+		if( this.core.life <= 0 ){
+			return false;
+		}
+
 		let isCollision = false;
 
 		let distanceToCenter = Math.sqrt( Math.pow( this.core.x - entity.x, 2 ) 
@@ -329,7 +408,11 @@ export default class Game{
 		return isCollision;
 	}
 
-	createEnemyOrEnergy(){
+	isGameOver(){
+		return this.core.canDestory();
+	}
+
+	createEntity(){
 		let canvasWidth  = this.canvas.width;
 		let canvasHeight = this.canvas.height; 
 		let canvasCenter = {
@@ -337,70 +420,69 @@ export default class Game{
 			y: canvasHeight / 2
 		};
 
-		let type = 'enemy';
+		let type;
+		let color;
 		switch( parseInt( Math.random() * 5 ) ){
 			case 0:
 			case 1:
 			case 2:
 			case 3:
-				type = 'enemy';
+				type  = EntityType.ENEMY;
+				color = 'red';
 				break;
 
 			case 4:
-				type = 'energy';
+				type  = EntityType.ENERGY;
+				color = '#14DC93';
 				break; 
 		}
 
-		let color =  type == 'enemy' ? 'red' : '#14DC93';
-		let radius = parseInt( Math.random() * 3  ) + 4;
-
-		let position = {};
+		let x = 0;
+		let y = 0;
 		switch( parseInt( Math.random() * 3 ) ){
 			case 0:
-				position.x =  parseInt( canvasWidth * Math.random() );
-				position.y = 0;
+				x =  parseInt( canvasWidth * Math.random() );
+				y = 0;
 				break;
 			case 1:
-				position.x = canvasWidth;
-				position.y = parseInt( canvasHeight * Math.random() );
+				x = canvasWidth;
+				y = parseInt( canvasHeight * Math.random() );
 				break;
 			case 2: 
-				position.x = parseInt( canvasWidth * Math.random() );
-				position.y = canvasHeight;
+				x = parseInt( canvasWidth * Math.random() );
+				y = canvasHeight;
 				break;
 			case 3: 
-				position.x = 0;
-				position.y =  parseInt( canvasHeight * Math.random() );
+				x = 0;
+				y =  parseInt( canvasHeight * Math.random() );
 				break;
 		}
+
+		let radius = parseInt( Math.random() * 3  ) + 4;
 
 		let speedX = 0;
 		let speedY = 0;
 		let speedRatio = 1;
-		if( Math.abs( canvasCenter.x  - position.x)  > Math.abs( canvasCenter.y - position.y ) ){
-			speedRatio = Math.abs( ( canvasCenter.y - position.y ) / ( canvasCenter.x - position.x )  );
-			speedX = ( 1 + Math.random() ) * ( canvasCenter.x > position.x ? 1: -1);
-			speedY = Math.abs( speedX * speedRatio ) * ( canvasCenter.y > position.y ? 1: -1 );
+		if( Math.abs( canvasCenter.x  - x)  > Math.abs( canvasCenter.y - y ) ){
+			speedRatio = Math.abs( ( canvasCenter.y - y ) / ( canvasCenter.x - x )  );
+			speedX = ( 1 + Math.random() ) * ( canvasCenter.x > x ? 1: -1 );
+			speedY = Math.abs( speedX * speedRatio ) * ( canvasCenter.y > y ? 1: -1 );
 		}else{
-			speedRatio = Math.abs( ( canvasCenter.x - position.x ) / ( canvasCenter.y - position.y )  );
-			speedY = ( 1 + Math.random() ) * ( canvasCenter.y > position.y ? 1: -1);
-			speedX = Math.abs( speedY * speedRatio ) * ( canvasCenter.x > position.x ? 1: -1 );
+			speedRatio = Math.abs( ( canvasCenter.x - x ) / ( canvasCenter.y - y )  );
+			speedY = ( 1 + Math.random() ) * ( canvasCenter.y > y ? 1: -1 );
+			speedX = Math.abs( speedY * speedRatio ) * ( canvasCenter.x > x ? 1: -1 );
 		}
 
-		let props = {
-			color: color,
-			x: position.x,
-			y: position.y,
+		this.entities.push( new Entity({
+			type: type,
+			x: x,
+			y: y,
 			radius: radius,
+			opacity: 1,
+			color: color,
 			speedX: speedX,
-			speedY: speedY,
-		};
-
-		( type == 'enemy') ? ( props.damage = radius ) : ( props.energy = radius );
-
-		let entity = ( type == 'enemy' ) ? ( new Enemy( props ) ): ( new Energy( props ) );
-
-		return entity;
+			speedY: speedY
+		}) );
 	}
 }
 

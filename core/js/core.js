@@ -11,3 +11,5 @@ var canvas = document.querySelector('.canvas');
 var game = new _componentsGame2['default'](canvas);
 
 game.start();
+
+// game.renderBackground();

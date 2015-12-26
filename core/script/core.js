@@ -6,6 +6,8 @@ let game = new Game( canvas );
 
 game.start();
 
+// game.renderBackground();
+
 
 
 

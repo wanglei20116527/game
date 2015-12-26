@@ -22,57 +22,85 @@ var _particle = require('./particle');
 
 var _particle2 = _interopRequireDefault(_particle);
 
-var Energy = (function (_Circle) {
-	_inherits(Energy, _Circle);
+var EntityType = {
+	CORE: 0,
+	ENERGY: 1,
+	ENEMY: 2
+};
 
-	function Energy(props) {
-		_classCallCheck(this, Energy);
+exports.EntityType = EntityType;
 
-		_get(Object.getPrototypeOf(Energy.prototype), 'constructor', this).call(this, props);
+var Entity = (function (_Circle) {
+	_inherits(Entity, _Circle);
+
+	function Entity(props) {
+		_classCallCheck(this, Entity);
+
+		_get(Object.getPrototypeOf(Entity.prototype), 'constructor', this).call(this, props);
+
+		this.type = props.type || EntityType.ENEMY;
 
 		this.speedX = props.speedX || 0;
 		this.speedY = props.speedY || 0;
 
-		this.enery = props.enery || props.radius || 4;
+		this.enery = props.enery || props.radius || 0;
 
 		this.fragments = [];
 
 		this.isSmashed = false;
 	}
 
-	_createClass(Energy, [{
+	_createClass(Entity, [{
 		key: 'move',
 		value: function move() {
-			if (this.isSmashed) {
-				this.fragments.forEach(function (fragment) {
-					fragment.move();
-				});
-			} else {
-				this.x += this.speedX;
-				this.y += this.speedY;
-			}
+			this.x += this.speedX;
+			this.y += this.speedY;
 		}
 	}, {
-		key: 'fade',
-		value: function fade() {
+		key: 'moveFragments',
+		value: function moveFragments() {
+			this.fragments.forEach(function (fragment) {
+				fragment.move();
+			});
+		}
+	}, {
+		key: 'fadeFragments',
+		value: function fadeFragments() {
 			this.fragments.forEach(function (fragment) {
 				fragment.fade();
 			});
 		}
 	}, {
+		key: 'canDestory',
+		value: function canDestory() {
+			if (!this.isSmashed) {
+				return false;
+			}
+
+			return this.fragments.every(function (fragment) {
+				return fragment.opacity < 0;
+			});
+		}
+	}, {
 		key: 'smash',
 		value: function smash() {
+			if (this.isSmashed) {
+				return;
+			}
+
 			this.fragments = [];
 
-			var NUMBER_FRAGMENTS = parseInt(this.radius * 1.5);
+			var NUMBER_FRAGMENTS = parseInt(this.radius * 2);
 
 			var RADIAN_UNIT = Math.PI / 4 / NUMBER_FRAGMENTS;
 
 			var speed = Math.sqrt(Math.pow(this.speedX, 2) + Math.pow(this.speedY, 2));
 
 			for (var i = 0; i <= NUMBER_FRAGMENTS; ++i) {
-				var speedX = speed * Math.sin(i * RADIAN_UNIT) * (this.speedX > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
-				var speedY = speed * Math.cos(i * RADIAN_UNIT) * (this.speedY > 0 ? -1 : 1) * (Math.random() * 0.2 + 0.6);
+				var speedTmp = speed * (Math.random() * 0.2 + 0.6);
+
+				var speedX = speedTmp * Math.sin(i * RADIAN_UNIT) * (this.speedX > 0 ? -1 : 1);
+				var speedY = speedTmp * Math.cos(i * RADIAN_UNIT) * (this.speedY > 0 ? -1 : 1);
 
 				this.fragments.push(new _particle2['default']({
 					x: this.x,
@@ -89,35 +117,29 @@ var Energy = (function (_Circle) {
 			this.isSmashed = true;
 		}
 	}, {
-		key: 'isDie',
-		value: function isDie() {
-			if (!this.isSmashed) {
-				return false;
-			}
-
-			return this.fragments.forEach(function (fragment) {
-				return fragment.opacity < 0;
+		key: 'renderFragments',
+		value: function renderFragments(canvas) {
+			this.isSmashed && this.fragments.forEach(function (fragment) {
+				fragment.render(canvas);
 			});
 		}
 	}, {
 		key: 'render',
 		value: function render(canvas) {
 			if (!canvas) {
-				console.error('Enemy draw function: canvas is %s', canvas);
+				console.error('Core renderFragments: canvas is %s', canvas);
 				return;
 			}
+
 			if (this.isSmashed) {
-				this.fragments.forEach(function (fragment) {
-					fragment.render(canvas);
-				});
-			} else {
-				_get(Object.getPrototypeOf(Energy.prototype), 'render', this).call(this, canvas);
+				return;
 			}
+
+			_get(Object.getPrototypeOf(Entity.prototype), 'render', this).call(this, canvas);
 		}
 	}]);
 
-	return Energy;
+	return Entity;
 })(_circle2['default']);
 
-exports['default'] = Energy;
-module.exports = exports['default'];
+exports['default'] = Entity;

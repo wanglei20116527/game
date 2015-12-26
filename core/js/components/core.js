@@ -14,72 +14,107 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-var _circle = require('./circle');
+var _entity = require('./entity');
 
-var _circle2 = _interopRequireDefault(_circle);
+var _entity2 = _interopRequireDefault(_entity);
 
-var count_renderd = 0;
-var RENDER_CYCLE = 360;
+var _particle = require('./particle');
 
-var Core = (function (_Circle) {
-	_inherits(Core, _Circle);
+var _particle2 = _interopRequireDefault(_particle);
+
+var Core = (function (_Entity) {
+	_inherits(Core, _Entity);
 
 	function Core(props) {
 		_classCallCheck(this, Core);
 
 		_get(Object.getPrototypeOf(Core.prototype), 'constructor', this).call(this, props);
 
+		this.type = _entity2['default'].CORE;
+
 		this.boundaryColor = props.boundaryColor || 'black';
 		this.boundaryWidth = props.boundaryWidth || 0;
 
-		this.life = props.life || 100;
-
-		this.fragments = [];
-
-		this.isSmashed = false;
+		this.life = props.life || props.energy || 100;
 	}
 
 	_createClass(Core, [{
-		key: 'moveFragemets',
-		value: function moveFragemets() {
-			this.fragments.forEach(function (fragment) {
-				fragment.move();
-			});
-		}
-	}, {
-		key: 'fadeFragments',
-		value: function fadeFragments() {
-			this.fragments.forEach(function (fragment) {
-				fragment.fade();
-			});
-		}
-	}, {
 		key: 'smash',
 		value: function smash() {
-			var NUMBER_FRAGMENTS = 180;
-
-			var RADINA_UNIT = Math.PI / NUMBER_FRAGMENTS;
-
-			for (var i = 0; i < NUMBER_FRAGMENTS; ++i) {}
-
-			this.isSmashed = true;
-		}
-	}, {
-		key: 'renderFragments',
-		value: function renderFragments(canvas) {
-			if (!canvas) {
-				console.error('Core renderFragments: canvas is %s', canvas);
+			if (this.isSmashed) {
 				return;
 			}
 
-			this.fragments.forEach(function (fragment) {
-				fragment.render(canvas);
-			});
+			var NUMBER_FRAGMENTS = 60;
+
+			var RADINA_UNIT = Math.PI * 2 / NUMBER_FRAGMENTS;
+
+			for (var i = 0; i <= NUMBER_FRAGMENTS; ++i) {
+				var x = this.x + parseInt(Math.random() * 6) - 3;
+				var y = this.y + parseInt(Math.random() * 6) - 3;
+
+				var radian = i * RADINA_UNIT;
+				var speed = Math.random() * 0.5 + 0.5;
+				var speedX = speed * Math.sin(radian);
+				var speedY = speed * Math.cos(radian);
+
+				this.fragments.push(new _particle2['default']({
+					x: x,
+					y: y,
+					radius: 1,
+					opacity: 1,
+					color: this.color,
+					speedX: speedX,
+					speedY: speedY,
+					fadeStep: (parseInt(Math.random() * 2) + 1) / 100
+				}));
+			}
+
+			this.isSmashed = true;
+		}
+
+		// canDestory(){
+		// 	if( !this.isSmashed ){
+		// 		return false;
+		// 	}
+
+		// 	return this.fragments.every(function( fragment ){
+		// 		return fragment.opacity < 0;
+		// 	});
+		// }
+
+	}, {
+		key: 'render',
+		value: function render(canvas) {
+			if (!canvas) {
+				console.error('Core render function: canvas is %s', canvas);
+				return;
+			}
+
+			if (this.isSmashed || this.life <= 0) {
+				return;
+			}
+
+			var context = canvas.getContext('2d');
+
+			context.save();
+			context.fillStyle = this.color;
+			context.globalAlpha = this.opacity >= 0 ? this.opacity : 0;
+
+			context.beginPath();
+
+			context.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
+
+			context.closePath();
+
+			context.fill();
+
+			context.restore();
 		}
 	}]);
 
 	return Core;
-})(_circle2['default']);
+})(_entity2['default']);
 
 exports['default'] = Core;
 module.exports = exports['default'];
