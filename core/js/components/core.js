@@ -72,17 +72,6 @@ var Core = (function (_Entity) {
 
 			this.isSmashed = true;
 		}
-
-		// canDestory(){
-		// 	if( !this.isSmashed ){
-		// 		return false;
-		// 	}
-
-		// 	return this.fragments.every(function( fragment ){
-		// 		return fragment.opacity < 0;
-		// 	});
-		// }
-
 	}, {
 		key: 'render',
 		value: function render(canvas) {

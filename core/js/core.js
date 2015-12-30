@@ -7,9 +7,26 @@ var _componentsGame = require('./components/game');
 var _componentsGame2 = _interopRequireDefault(_componentsGame);
 
 var canvas = document.querySelector('.canvas');
+var startButton = document.querySelector('.startButton');
+var dialogLayer = document.querySelector('.dialog-layer');
 
-var game = new _componentsGame2['default'](canvas);
+var game = createGame(canvas, gameOverCallback);
 
-game.start();
+startButton.addEventListener('click', function () {
+	dialogLayer.className = dialogLayer.className + ' hidden';
 
-// game.renderBackground();
+	game.start();
+}, false);
+
+function createGame(canvas, callback) {
+	return new _componentsGame2['default'](canvas, callback);
+}
+
+function gameOverCallback() {
+	var className = dialogLayer.className;
+	className = className.replace(/^hidden|hidden$|\bhidden\b/g, ' ');
+	dialogLayer.className = className.trim();
+	game.destructor();
+
+	game = createGame(canvas, gameOverCallback);
+}

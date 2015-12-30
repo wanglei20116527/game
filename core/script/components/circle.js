@@ -7,6 +7,10 @@ export default class Circle{
 		this.opacity = props.opacity || 1;
 	}
 
+	area(){
+		return Math.PI * Math.pow( this.radius, 2 );
+	}
+
 	render( canvas ){
 		if( !canvas ){
 			console.error( 'Circle draw function: canvas is %s', canvas );

@@ -36,6 +36,12 @@ var requestAnimationFrame = (function () {
 	};
 })();
 
+var cancelAnimationFrame = (function () {
+	return window.cancelAnimationFrame || window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame || window.oCancelAnimationFrame || window.msCancelAnimationFrame || function (fd) {
+		clearTimeout(fd);
+	};
+})();
+
 var calculateRadian = function calculateRadian(position, center) {
 	var x = position.x;
 	var y = position.y;
@@ -71,26 +77,36 @@ var Game = (function () {
 		_classCallCheck(this, Game);
 
 		this.canvas = canvas;
-		this.gameOverCallback = gameOverCallback;
+		this.gameOverCallback = gameOverCallback || null;
 
-		this.background = null;
-		this.shield = null;
-		this.core = null;
-		this.entities = [];
-
-		this.isPending = false;
-		this.isStop = false;
-
-		this.initComponents();
-		this.initEvents();
-
-		window.game = this;
+		this.init();
 	}
 
 	_createClass(Game, [{
+		key: 'init',
+		value: function init() {
+			this.background = null;
+			this.shield = null;
+			this.core = null;
+			this.entities = [];
+
+			this.isPending = false;
+			this.isStop = false;
+
+			this.initComponents();
+			this.initEvents();
+
+			this._renderFD = null;
+			this._recycleFD = null;
+			this._createEntityFD = null;
+			this._detectCollisionFD = null;
+			this._detectGameOverFD = null;
+
+			this.renderBackground();
+		}
+	}, {
 		key: 'destructor',
 		value: function destructor() {
-			this.canvas = null;
 			this.background = null;
 			this.shield = null;
 			this.core = null;
@@ -99,6 +115,22 @@ var Game = (function () {
 			this.isStop = false;
 
 			this.clearEvents();
+
+			this.clearCanvas();
+			this.canvas = null;
+			this.gameOverCallback = null;
+
+			this._renderFD !== null && cancelAnimationFrame(this._renderFD);
+			this._recycleFD !== null && cancelAnimationFrame(this._recycleFD);
+			this._createEntityFD !== null && clearTimeout(this._createEntityFD);
+			this._detectCollisionFD !== null && cancelAnimationFrame(this._detectCollisionFD);
+			this._detectGameOverFD !== null && cancelAnimationFrame(this._detectGameOverFD);
+
+			this._renderFD = null;
+			this._recycleFD = null;
+			this._createEntityFD = null;
+			this._detectCollisionFD = null;
+			this._detectGameOverFD = null;
 		}
 	}, {
 		key: 'initComponents',
@@ -116,8 +148,7 @@ var Game = (function () {
 			var backgroundColor = context.createRadialGradient(this.canvas.width / 2, this.canvas.height / 2, 100, this.canvas.width / 2, this.canvas.height / 2, Math.sqrt(Math.pow(this.canvas.width, 2) + Math.pow(this.canvas.height, 2)));
 
 			backgroundColor.addColorStop(0, '#004646');
-			backgroundColor.addColorStop(0.25, '#002B2E');
-			backgroundColor.addColorStop(0.5, '#001E22');
+			backgroundColor.addColorStop(0.3, '#002B2E');
 			backgroundColor.addColorStop(1, '#001217');
 
 			this.background = new _background2['default']({
@@ -190,6 +221,12 @@ var Game = (function () {
 			this.canvas.removeEventListener('mousemove', _events.mousemove, false);
 		}
 	}, {
+		key: 'clearCanvas',
+		value: function clearCanvas() {
+			var context = this.canvas.getContext('2d');
+			context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+		}
+	}, {
 		key: 'start',
 		value: function start() {
 			var _this = this;
@@ -202,7 +239,7 @@ var Game = (function () {
 				}
 
 				this.isPending && this.render();
-				requestAnimationFrame(renderProxy);
+				this._renderFD = requestAnimationFrame(renderProxy);
 			}).bind(this);
 			renderProxy();
 
@@ -212,7 +249,7 @@ var Game = (function () {
 				}
 
 				this.isPending && this.createEntity();
-				setTimeout(createEntityProxy.bind(this), 1000 + parseInt(Math.random() * 500));
+				this._createEntityFD = setTimeout(createEntityProxy.bind(this), 1000 + parseInt(Math.random() * 500));
 			}).bind(this);
 			createEntityProxy();
 
@@ -222,7 +259,7 @@ var Game = (function () {
 				}
 
 				this.recycle();
-				requestAnimationFrame(recycleProxy);
+				this._recycleFD = requestAnimationFrame(recycleProxy);
 			}).bind(this);
 			recycleProxy();
 
@@ -232,17 +269,17 @@ var Game = (function () {
 				}
 
 				this.isPending && this.detectCollision();
-				requestAnimationFrame(detectCollisionProxy);
+				this._detectCollisionFD = requestAnimationFrame(detectCollisionProxy);
 			}).bind(this);
 			detectCollisionProxy();
 
 			if (this.gameOverCallback && typeof this.gameOverCallback == 'function') {
 				(function () {
 					var detectGameOverProxy = (function () {
-						var isGameOver = this.isGameOver;
+						var isGameOver = this.isGameOver();
 
 						isGameOver && this.gameOverCallback && this.gameOverCallback();
-						isGameOver || requestAnimationFrame(detectGameOverProxy);
+						isGameOver || (this._detectGameOverFD = requestAnimationFrame(detectGameOverProxy));
 					}).bind(_this);
 					detectGameOverProxy();
 				})();
@@ -271,8 +308,7 @@ var Game = (function () {
 				return;
 			}
 
-			var context = this.canvas.getContext('2d');
-			context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+			this.clearCanvas();
 
 			this.renderBackground();
 			this.renderShield();
@@ -371,15 +407,19 @@ var Game = (function () {
 
 					switch (entity.type) {
 						case _entity.EntityType.ENEMY:
-							this.core.radius -= entity.radius;
+							if (this.core.radius <= entity.radius) {
+								this.core.radius = 0;
+							} else {
+								this.core.radius = Math.sqrt((this.core.area() - entity.area()) / Math.PI);
+							}
 							break;
 
 						case _entity.EntityType.ENERGY:
-							this.core.radius += entity.radius;
+							this.core.radius = Math.sqrt((this.core.area() + entity.area()) / Math.PI);
 							break;
 					}
 
-					this.core.radius < 0 && this.core.smash();
+					this.core.radius <= 0 && this.core.smash();
 					return;
 				}
 			}).bind(this));

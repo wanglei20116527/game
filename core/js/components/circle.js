@@ -20,6 +20,11 @@ var Circle = (function () {
 	}
 
 	_createClass(Circle, [{
+		key: 'area',
+		value: function area() {
+			return Math.PI * Math.pow(this.radius, 2);
+		}
+	}, {
 		key: 'render',
 		value: function render(canvas) {
 			if (!canvas) {

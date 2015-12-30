@@ -48,16 +48,6 @@ export default class Core extends Entity{
 		this.isSmashed = true;
 	}
 
-	// canDestory(){
-	// 	if( !this.isSmashed ){
-	// 		return false;
-	// 	}
-
-	// 	return this.fragments.every(function( fragment ){
-	// 		return fragment.opacity < 0;
-	// 	});
-	// }
-
 	render( canvas ){
 		if( !canvas ){
 			console.error( 'Core render function: canvas is %s', canvas );
